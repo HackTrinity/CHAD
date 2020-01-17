@@ -1,7 +1,7 @@
 FROM python:3.8-alpine
 
 COPY requirements.txt /opt/
-RUN apk --no-cache add musl-dev gcc && \
+RUN apk --no-cache add docker-cli musl-dev gcc && \
     pip install -r /opt/requirements.txt && \
     apk --no-cache del musl-dev gcc
 
