@@ -1,3 +1,5 @@
+from string import Template
+import json
 import time
 import tempfile
 
@@ -13,7 +15,7 @@ class ChallengeException(Exception):
 
 class ChallengeManager:
     def __init__(self, docker, stacks, salt, flag_prefix='CTF'):
-        self.ids = hashids.Hashids(salt, min_length=8)
+        self.ids = hashids.Hashids(salt, min_length=10)
         self.flags = util.FlagGenerator(prefix=flag_prefix)
 
         self.docker = docker
@@ -21,9 +23,12 @@ class ChallengeManager:
 
     def create(self, challenge_id, user_id, stack, service, needs_flag=True, needs_gateway=False):
         result = {'id': self.ids.encode(challenge_id, user_id)}
-        name = f'chad_{result["id"]}'
+        name = f'chad_{challenge_id}_{user_id}'
         if name in self.stacks.ls():
             raise ChallengeException(f'An instance of challenge ID {challenge_id} already exists for user ID {user_id}')
+
+        stack_template = Template(json.dumps(stack))
+        stack = json.loads(stack_template.substitute(chad_id=result['id']))
 
         dpath.new(stack, f'services/{service}/deploy/labels/{LABEL_PREFIX}.last-ping', int(time.time()))
         if needs_flag:
@@ -45,4 +50,8 @@ class ChallengeManager:
         return result
 
     def delete(self, challenge_id, user_id):
-        pass
+        name = f'chad_{challenge_id}_{user_id}'
+        if name not in self.stacks.ls():
+            raise ChallengeException(f'An instance of challenge ID {challenge_id} does not exist for user ID {user_id}')
+
+        self.stacks.rm(name)

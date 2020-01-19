@@ -28,3 +28,6 @@ class StackManager:
         args.append(name)
 
         self._docker_cmd(args, input=json.dumps(spec), parse=False)
+
+    def rm(self, name):
+        self._docker_cmd(['stack', 'rm', name], parse=False)

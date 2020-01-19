@@ -3,3 +3,5 @@ services:
   app:
     image: alpine
     command: sleep 999999
+    environment:
+      CHALL_ID: $chad_id

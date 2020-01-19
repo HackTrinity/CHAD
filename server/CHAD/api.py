@@ -25,6 +25,7 @@ def create_instance(b):
         b['needs_gateway']
     ))
 
-@app.route('/instances/<id_>', methods=['DELETE'])
-def delete_instance():
-    return None, 204
+@app.route('/instances/<challenge_id>/<user_id>', methods=['DELETE'])
+def delete_instance(challenge_id, user_id):
+    app.challenges.delete(int(challenge_id), int(user_id))
+    return '', 204
