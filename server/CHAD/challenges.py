@@ -1,5 +1,5 @@
 import time
-import logging
+import tempfile
 
 import dpath.util as dpath
 import hashids
@@ -18,16 +18,23 @@ class ChallengeManager:
 
     def create(self, challenge_id, user_id, stack, service, needs_flag=True, needs_gateway=False):
         result = {'id': self.ids.encode(challenge_id, user_id)}
-        name = f'chad_{result["id"]}'
         dpath.new(stack, f'services/{service}/deploy/labels/{LABEL_PREFIX}.last-ping', int(time.time()))
         if needs_flag:
-            secret = f'{name}_flag'
             result['flag'] = self.flags.next_flag()
-            self.docker.secrets.create(name=secret, data=result['flag'].encode('ascii'))
-            dpath.new(stack, f'secrets/{secret}/external', True)
-            dpath.merge(stack, {'services': {service: {'secrets': [secret]}}})
+            secret_tmp = tempfile.NamedTemporaryFile('w', prefix='flag', suffix='.txt', encoding='ascii')
+            secret_tmp.write(f'{result["flag"]}\n')
+            secret_tmp.flush()
 
-        self.stacks.deploy(name, stack, registry_auth=True)
+            dpath.new(stack, f'secrets/flag/file', secret_tmp.name)
+            dpath.merge(stack, {'services': {service: {'secrets': [{
+                'source': 'flag',
+                'target': 'flag.txt',
+                'mode': 0o440
+            }]}}})
+
+        self.stacks.deploy(f'chad_{result["id"]}', stack, registry_auth=True)
+        if needs_flag:
+            secret_tmp.close()
         return result
 
     def delete(self, challenge_id, user_id):
