@@ -1,28 +1,43 @@
 from gevent import monkey; monkey.patch_all()
 
-import time
+import os
 
 import docker
+from werkzeug.exceptions import InternalServerError
+from marshmallow.exceptions import ValidationError
 from flask import Flask, jsonify
 
-from . import stack
+from .util import var_or_secret
+from . import stack, challenges
 
 app = Flask(__name__)
-app.docker = docker.from_env()
-app.stacks = stack.StackManager()
+app.config.update({
+    'ID_SALT': var_or_secret('ID_SALT', 'TESTTESTTEST'),
+    'FLAG_PREFIX': os.getenv('FLAG_PREFIX', 'CTF')
+})
 
-@app.route('/')
-def index():
-    return 'Hello, world!'
+app.challenges = challenges.ChallengeManager(
+    docker.from_env(),
+    stack.StackManager(),
+    app.config['ID_SALT'],
+    app.config['FLAG_PREFIX']
+)
 
-@app.route('/stacks')
-def stacks():
-    return jsonify(app.stacks.list_all())
+with app.app_context():
+    from . import api
 
-@app.route('/stacks/<id_>')
-def services(id_):
-    return jsonify(app.stacks.services(id_))
+@app.errorhandler(404)
+def not_found(_e):
+    return jsonify({'message': 'not found'}), 404
 
-@app.route('/services/<id_>')
-def info(id_):
-    return jsonify(app.docker.services.get(id_).attrs)
+@app.errorhandler(ValidationError)
+def validation_error(e):
+    return jsonify({'message': 'validation error', 'extra': e.messages}), 400
+
+@app.errorhandler(InternalServerError)
+def internal_error(e):
+    original = getattr(e, 'original_exception', None)
+
+    if original is None:
+        return jsonify({'message': 'unknown error'}), 500
+    return jsonify({'message': str(original)}), 500
