@@ -8,6 +8,9 @@ from . import util
 
 LABEL_PREFIX = 'org.hacktrinity.chad'
 
+class ChallengeException(Exception):
+    pass
+
 class ChallengeManager:
     def __init__(self, docker, stacks, salt, flag_prefix='CTF'):
         self.ids = hashids.Hashids(salt, min_length=8)
@@ -18,6 +21,10 @@ class ChallengeManager:
 
     def create(self, challenge_id, user_id, stack, service, needs_flag=True, needs_gateway=False):
         result = {'id': self.ids.encode(challenge_id, user_id)}
+        name = f'chad_{result["id"]}'
+        if name in self.stacks.ls():
+            raise ChallengeException(f'An instance of challenge ID {challenge_id} already exists for user ID {user_id}')
+
         dpath.new(stack, f'services/{service}/deploy/labels/{LABEL_PREFIX}.last-ping', int(time.time()))
         if needs_flag:
             result['flag'] = self.flags.next_flag()
@@ -32,7 +39,7 @@ class ChallengeManager:
                 'mode': 0o440
             }]}}})
 
-        self.stacks.deploy(f'chad_{result["id"]}', stack, registry_auth=True)
+        self.stacks.deploy(name, stack, registry_auth=True)
         if needs_flag:
             secret_tmp.close()
         return result

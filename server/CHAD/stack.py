@@ -14,7 +14,7 @@ class StackManager:
         return lines
 
     def ls(self):
-        return list(self._docker_cmd(['stack', 'ls', '--format', '{{json .}}']))
+        return list(map(lambda s: s['Name'], self._docker_cmd(['stack', 'ls', '--format', '{{json .}}'])))
 
     def services(self, id_):
         return list(self._docker_cmd(['stack', 'services', '--format', '{{json .}}', id_]))
@@ -27,4 +27,4 @@ class StackManager:
             args.append('--with-registry-auth')
         args.append(name)
 
-        self._docker_cmd(args, input=json.dumps(spec))
+        self._docker_cmd(args, input=json.dumps(spec), parse=False)

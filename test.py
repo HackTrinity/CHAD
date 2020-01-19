@@ -5,6 +5,12 @@ from pprint import pprint
 import yaml
 import requests
 
+def pfallback(res):
+    if res.headers['content-type'].startswith('application/json'):
+        pprint(res.json())
+    else:
+        print(res.text)
+
 def create(args):
     with open(args.stack) as stack_file:
         stack = yaml.safe_load(stack_file)
@@ -17,7 +23,7 @@ def create(args):
         'needs_flag': args.needs_flag,
         'needs_gateway': args.needs_gateway
     })
-    pprint(res.json())
+    pfallback(res)
 
 def main():
     parser = argparse.ArgumentParser(description='Test client for CHAD')
