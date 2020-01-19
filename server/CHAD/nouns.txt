@@ -6021,7 +6021,6 @@ tale
 talent
 talk
 talking
-tam-o'-shanter
 tamale
 tambour
 tambourine
