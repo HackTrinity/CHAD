@@ -15,7 +15,7 @@ create_schema = CreateInstanceSchema()
 
 @app.route('/instances', methods=['POST'])
 @parse_body(create_schema)
-def create_instance(b):
+def instance_create(b):
     return jsonify(app.challenges.create(
         b['challenge_id'],
         b['user_id'],
@@ -25,7 +25,12 @@ def create_instance(b):
         b['needs_gateway']
     ))
 
+@app.route('/instances/<challenge_id>/<user_id>', methods=['PUT'])
+def instance_reset(challenge_id, user_id):
+    app.challenges.reset(int(challenge_id), int(user_id))
+    return '', 204
+
 @app.route('/instances/<challenge_id>/<user_id>', methods=['DELETE'])
-def delete_instance(challenge_id, user_id):
+def instance_delete(challenge_id, user_id):
     app.challenges.delete(int(challenge_id), int(user_id))
     return '', 204

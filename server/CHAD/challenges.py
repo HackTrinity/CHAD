@@ -1,6 +1,5 @@
 from string import Template
 import json
-import time
 import tempfile
 
 import dpath.util as dpath
@@ -9,6 +8,7 @@ import hashids
 from . import util
 
 LABEL_PREFIX = 'org.hacktrinity.chad'
+LABEL_PRIMARY = f'{LABEL_PREFIX}.primary'
 
 class ChallengeException(Exception):
     pass
@@ -30,7 +30,7 @@ class ChallengeManager:
         stack_template = Template(json.dumps(stack))
         stack = json.loads(stack_template.substitute(chad_id=result['id']))
 
-        dpath.new(stack, f'services/{service}/deploy/labels/{LABEL_PREFIX}.last-ping', int(time.time()))
+        dpath.new(stack, f'services/{service}/deploy/labels/{LABEL_PRIMARY}', 'true')
         if needs_flag:
             result['flag'] = self.flags.next_flag()
             secret_tmp = tempfile.NamedTemporaryFile('w', prefix='flag', suffix='.txt', encoding='ascii')
@@ -48,6 +48,18 @@ class ChallengeManager:
         if needs_flag:
             secret_tmp.close()
         return result
+
+    def reset(self, challenge_id, user_id):
+        services = self.docker.services.list(filters={
+            'label': [
+                f'com.docker.stack.namespace=chad_{challenge_id}_{user_id}'
+            ]
+        })
+        if not services:
+            raise ChallengeException(f'An instance of challenge ID {challenge_id} does not exist for user ID {user_id}')
+
+        for service in services:
+            service.force_update()
 
     def delete(self, challenge_id, user_id):
         name = f'chad_{challenge_id}_{user_id}'

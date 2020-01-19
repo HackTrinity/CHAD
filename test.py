@@ -25,6 +25,11 @@ def create(args):
     })
     pfallback(res)
 
+def reset(args):
+    res = requests.put(f'{args.host}/instances/{args.challenge_id}/{args.user_id}')
+    if res.status_code != 204:
+        pfallback(res)
+
 def delete(args):
     res = requests.delete(f'{args.host}/instances/{args.challenge_id}/{args.user_id}')
     if res.status_code != 204:
@@ -44,6 +49,11 @@ def main():
     c_create.add_argument('-g', '--with-gateway', action='store_true', dest='needs_gateway', help='Request gateway')
     c_create.add_argument('stack', help='Path to stack YAML')
     c_create.add_argument('service', help='Primary challenge service')
+
+    c_reset = commands.add_parser('reset', help='Ping challenge')
+    c_reset.set_defaults(fn=reset)
+    c_reset.add_argument('-c', '--challenge-id', type=int, default=1, help='Challenge ID')
+    c_reset.add_argument('-u', '--user-id', type=int, default=1, help='User ID')
 
     c_delete = commands.add_parser('delete', help='Delete challenge')
     c_delete.set_defaults(fn=delete)
