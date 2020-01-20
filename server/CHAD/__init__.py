@@ -3,24 +3,35 @@ from gevent import monkey; monkey.patch_all()
 import os
 
 import docker
+import redis
 from werkzeug.exceptions import InternalServerError
 from marshmallow.exceptions import ValidationError
 from flask import Flask, jsonify
 
 from .util import var_or_secret
-from . import stack, challenges
+from . import stack, challenges, cleanup
 
 app = Flask(__name__)
 app.config.update({
     'ID_SALT': var_or_secret('ID_SALT', 'TESTTESTTEST'),
-    'FLAG_PREFIX': os.getenv('FLAG_PREFIX', 'CTF')
+    'FLAG_PREFIX': os.getenv('FLAG_PREFIX', 'CTF'),
+    'REDIS_URL': os.getenv('REDIS_URL', 'redis://redis'),
+    'CLEANUP_INTERVAL': int(os.getenv('CLEANUP_INTERVAL', '30')),
+    'CLEANUP_TIMEOUT': int(os.getenv('CLEANUP_TIMEOUT', '60'))
 })
 
+app.redis = redis.from_url(app.config['REDIS_URL'])
 app.challenges = challenges.ChallengeManager(
     docker.from_env(),
     stack.StackManager(),
+    app.redis,
     app.config['ID_SALT'],
-    app.config['FLAG_PREFIX']
+    flag_prefix=app.config['FLAG_PREFIX'],
+    timeout=app.config['CLEANUP_TIMEOUT']
+)
+app.cleanup = cleanup.Cleanup(
+    app.challenges,
+    interval=app.config['CLEANUP_INTERVAL']
 )
 
 with app.app_context():

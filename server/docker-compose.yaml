@@ -1,10 +1,17 @@
 version: '3'
 services:
+  redis:
+    image: redis:alpine
   app:
     image: $DOCKER_REGISTRY/chad-server
     build: .
+    depends_on:
+      - redis
     environment:
       - DEBUG=yes
+      - CLEANUP_DISABLED=yes
+      - CLEANUP_INTERVAL=5
+      - CLEANUP_TIMEOUT=10
     ports:
       - 8001:80
     volumes:

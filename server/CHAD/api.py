@@ -25,6 +25,11 @@ def instance_create(b):
         b['needs_gateway']
     ))
 
+@app.route('/instances/<challenge_id>/<user_id>', methods=['PATCH'])
+def instance_ping(challenge_id, user_id):
+    app.challenges.ping(int(challenge_id), int(user_id))
+    return '', 204
+
 @app.route('/instances/<challenge_id>/<user_id>', methods=['PUT'])
 def instance_reset(challenge_id, user_id):
     app.challenges.reset(int(challenge_id), int(user_id))

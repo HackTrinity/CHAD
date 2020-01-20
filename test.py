@@ -11,6 +11,7 @@ def pfallback(res):
     else:
         print(res.text)
 
+
 def create(args):
     with open(args.stack) as stack_file:
         stack = yaml.safe_load(stack_file)
@@ -24,6 +25,11 @@ def create(args):
         'needs_gateway': args.needs_gateway
     })
     pfallback(res)
+
+def ping(args):
+    res = requests.patch(f'{args.host}/instances/{args.challenge_id}/{args.user_id}')
+    if res.status_code != 204:
+        pfallback(res)
 
 def reset(args):
     res = requests.put(f'{args.host}/instances/{args.challenge_id}/{args.user_id}')
@@ -50,7 +56,12 @@ def main():
     c_create.add_argument('stack', help='Path to stack YAML')
     c_create.add_argument('service', help='Primary challenge service')
 
-    c_reset = commands.add_parser('reset', help='Ping challenge')
+    c_ping = commands.add_parser('ping', help='Ping challenge')
+    c_ping.set_defaults(fn=ping)
+    c_ping.add_argument('-c', '--challenge-id', type=int, default=1, help='Challenge ID')
+    c_ping.add_argument('-u', '--user-id', type=int, default=1, help='User ID')
+
+    c_reset = commands.add_parser('reset', help='Reset challenge')
     c_reset.set_defaults(fn=reset)
     c_reset.add_argument('-c', '--challenge-id', type=int, default=1, help='Challenge ID')
     c_reset.add_argument('-u', '--user-id', type=int, default=1, help='User ID')
