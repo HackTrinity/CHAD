@@ -2,6 +2,6 @@ version: '3.3'
 services:
   app:
     image: nginx:alpine
-    command: cp /run/secrets/flag.txt /usr/share/nginx/html/flag.txt && nginx -g "daemon off;"
+    command: /bin/sh -c 'cp /run/secrets/flag.txt /usr/share/nginx/html/flag.txt && nginx -g "daemon off;"'
     environment:
       CHALL_ID: $chad_id
