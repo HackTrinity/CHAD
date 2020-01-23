@@ -2,7 +2,9 @@ from string import Template
 import json
 import tempfile
 import time
+import secrets
 
+import yaml
 import dpath.util as dpath
 import hashids
 
@@ -18,7 +20,9 @@ class ChallengeException(Exception):
     pass
 
 class ChallengeManager:
-    def __init__(self, docker, stacks, redis, salt, flag_prefix='CTF', timeout=60):
+    def __init__(self, docker, stacks, redis, salt, flag_prefix='CTF', timeout=60,
+        gateway_image='chad-gateway', gateway_proxy='chad-gw.sys.hacktrinity.org',
+        challenge_domain='challs.hacktrinity.org'):
         self.ids = hashids.Hashids(salt, min_length=10)
         self.flags = util.FlagGenerator(prefix=flag_prefix)
 
@@ -26,6 +30,12 @@ class ChallengeManager:
         self.stacks = stacks
         self.redis = redis
         self.timeout = timeout
+        self.gateway_image = gateway_image
+        self.gateway_proxy = gateway_proxy
+        self.challenge_domain = challenge_domain
+
+        with open('CHAD/gateway_service.yaml') as gw_service_file:
+            self.gateway_service = yaml.safe_load(gw_service_file)
 
     def cleanup(self, logger=None):
         now = int(time.time())
@@ -50,8 +60,26 @@ class ChallengeManager:
         if name in self.stacks.ls():
             raise ChallengeException(f'An instance of challenge ID {challenge_id} already exists for user ID {user_id}')
 
+        stack_context = {
+            'chad_id': result['id']
+        }
+        if needs_gateway:
+            stack_context.update({
+                'chad_gateway_image': self.gateway_image,
+                'chad_gateway_proxy': self.gateway_proxy,
+                'chad_challenge_domain': self.challenge_domain
+            })
+            config_password = secrets.token_urlsafe(32)
+            result['gateway_config_password'] = config_password
+            gw_password_tmp = tempfile.NamedTemporaryFile('w', prefix='gw_pwd', encoding='ascii')
+            gw_password_tmp.write(f'{config_password}\n')
+            gw_password_tmp.flush()
+
+            dpath.new(stack, 'services/gateway', self.gateway_service)
+            dpath.new(stack, 'secrets/config_password/file', gw_password_tmp.name)
+
         stack_template = Template(json.dumps(stack))
-        stack = json.loads(stack_template.substitute(chad_id=result['id']))
+        stack = json.loads(stack_template.substitute(**stack_context))
 
         dpath.new(stack, f'services/{service}/deploy/labels/{LABEL_PRIMARY}', 'true')
         if needs_flag:
@@ -60,7 +88,7 @@ class ChallengeManager:
             secret_tmp.write(f'{result["flag"]}\n')
             secret_tmp.flush()
 
-            dpath.new(stack, f'secrets/flag/file', secret_tmp.name)
+            dpath.new(stack, 'secrets/flag/file', secret_tmp.name)
             dpath.merge(stack, {'services': {service: {'secrets': [{
                 'source': 'flag',
                 'target': 'flag.txt',
@@ -69,6 +97,8 @@ class ChallengeManager:
 
         self.redis.set(f'{name}_last_ping', int(time.time()))
         self.stacks.deploy(name, stack, registry_auth=True)
+        if needs_gateway:
+            gw_password_tmp.close()
         if needs_flag:
             secret_tmp.close()
         return result
