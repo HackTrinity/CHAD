@@ -3,5 +3,7 @@ services:
   app:
     image: $DOCKER_REGISTRY/chad-gateway
     build: .
+    cap_add:
+      - NET_ADMIN
     ports:
       - 8002:80

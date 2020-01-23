@@ -37,7 +37,7 @@ tls-auth $EASYRSA_PKI/ta.key 0
 keepalive 10 60
 persist-key
 persist-tun
-#local 127.0.0.1
+local 127.0.0.1
 port 1194
 proto tcp-server
 dev-type tap
@@ -71,11 +71,47 @@ $(cat $EASYRSA_PKI/ta.key) 0
 key-direction 1
 
 remote $SERVER_CN 1194 tcp
-#http-proxy $PROXY 80
+http-proxy $PROXY 80
 dev-type tap
 dev ht-${INSTANCE_ID}
 EOF
-    chmod 600 "$OPENVPN/client.conf"
+
+    info "Generating nginx config..."
+    PASS_HASH="$(openssl passwd -in $CONFIG_PASSWORD_FILE)"
+    echo "chad:$PASS_HASH" > /usr/local/nginx/conf/auth.conf
+    cat > /usr/local/nginx/conf/nginx.conf <<EOF
+daemon on;
+user nobody nobody;
+worker_processes 1;
+
+events {}
+
+http {
+    include mime.types;
+    default_type text/plain;
+
+    server {
+        listen 80 default_server;
+        server_name $SERVER_CN;
+
+        proxy_connect;
+        proxy_connect_address 127.0.0.1;
+        proxy_connect_allow 1194;
+        proxy_connect_connect_timeout 1s;
+        proxy_connect_send_timeout 120s;
+
+        location = /client.conf {
+            auth_basic "HackTrinity Challenge $INSTANCE_ID";
+            auth_basic_user_file auth.conf;
+            root html;
+        }
+        error_page 500 502 503 504 /50x.html;
+        location = /50x.html {
+            root   html;
+        }
+    }
+}
+EOF
 }
 
 mkdir -p /dev/net
@@ -96,6 +132,9 @@ ip link set dev gw-bridge up
 ip link set dev eth0 master gw-bridge
 ip link set dev gw master gw-bridge
 ip addr add dev gw-bridge "$LAN_IP"
-ip route add default via "$GATEWAY"
+ip route show | grep default || ip route add default via "$GATEWAY"
 
 [ ! -f "$OPENVPN/server.conf" ] && generate_configs
+
+/usr/local/nginx/sbin/nginx
+exec openvpn "$OPENVPN/server.conf"

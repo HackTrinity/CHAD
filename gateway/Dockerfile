@@ -5,7 +5,7 @@ RUN ./build_nginx_connect.sh
 
 
 FROM alpine:3.11
-RUN apk --no-cache add pcre easy-rsa openvpn && \
+RUN apk --no-cache add pcre easy-rsa openvpn tini && \
     ln -s /usr/share/easy-rsa/easyrsa /usr/bin/easyrsa
 COPY --from=builder /usr/local/nginx /usr/local/nginx
 
@@ -26,9 +26,13 @@ ENV LAN_IFACE=eth0
 ENV PROXY=chad-gw.sys.hacktrinity.org
 ENV DOMAIN=challs.hacktrinity.org
 ENV INSTANCE_ID=abcdEFGH
+ENV CONFIG_PASSWORD_FILE=/run/secrets/config_password
 
-RUN easyrsa init-pki
+RUN easyrsa init-pki && \
+    rm /usr/local/nginx/html/index.html && \
+    ln -s "$OPENVPN/client.conf" /usr/local/nginx/html/client.conf
 COPY dh.pem $EASYRSA_PKI/dh.pem
 COPY entrypoint.sh /
 
+ENTRYPOINT ["tini", "--", "/entrypoint.sh"]
 EXPOSE 80/tcp
