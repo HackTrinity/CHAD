@@ -7,7 +7,7 @@ RUN apk --no-cache add tini redis docker-cli musl-dev gcc && \
 
 COPY entrypoint.sh /
 WORKDIR /opt
-COPY CHAD/ .
+COPY CHAD/ /opt/CHAD
 
 ENV WORKERS=1
 ENTRYPOINT ["tini", "--", "/entrypoint.sh"]

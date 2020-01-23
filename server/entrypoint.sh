@@ -6,7 +6,7 @@ until redis-cli -u "$REDIS_URL" ping > /dev/null; do
     sleep 0.2
 done
 
-if [ -z "$CLEANUP_DISABLED"]; then
+if [ -z "$CLEANUP_DISABLED" ]; then
     python -m CHAD cleanup &
 fi
 
