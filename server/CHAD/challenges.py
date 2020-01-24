@@ -22,7 +22,7 @@ class ChallengeException(Exception):
 class ChallengeManager:
     def __init__(self, docker, stacks, redis, salt, flag_prefix='CTF', timeout=60,
         gateway_image='chad-gateway', gateway_proxy='chad-gw.sys.hacktrinity.org',
-        challenge_domain='challs.hacktrinity.org'):
+        challenge_domain='challs.hacktrinity.org', traefik_network='traefik'):
         self.ids = hashids.Hashids(salt, min_length=10)
         self.flags = util.FlagGenerator(prefix=flag_prefix)
 
@@ -33,6 +33,7 @@ class ChallengeManager:
         self.gateway_image = gateway_image
         self.gateway_proxy = gateway_proxy
         self.challenge_domain = challenge_domain
+        self.traefik_network = traefik_network
 
         with open('CHAD/gateway_service.yaml') as gw_service_file:
             self.gateway_service = yaml.safe_load(gw_service_file)
@@ -67,7 +68,8 @@ class ChallengeManager:
             stack_context.update({
                 'chad_gateway_image': self.gateway_image,
                 'chad_gateway_proxy': self.gateway_proxy,
-                'chad_challenge_domain': self.challenge_domain
+                'chad_challenge_domain': self.challenge_domain,
+                'chad_traefik_network': self.traefik_network
             })
             config_password = secrets.token_urlsafe(32)
             result['gateway_config_password'] = config_password
@@ -76,6 +78,7 @@ class ChallengeManager:
             gw_password_tmp.flush()
 
             dpath.new(stack, 'services/gateway', self.gateway_service)
+            dpath.new(stack, f'networks/{self.traefik_network}/external', True)
             dpath.new(stack, 'secrets/config_password/file', gw_password_tmp.name)
 
         stack_template = Template(json.dumps(stack))

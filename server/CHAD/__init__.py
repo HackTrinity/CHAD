@@ -19,6 +19,7 @@ app.config.update({
     'GATEWAY_IMAGE': os.getenv('GATEWAY_IMAGE', 'chad-gateway'),
     'GATEWAY_PROXY': os.getenv('GATEWAY_PROXY', 'chad-gw.sys.hacktrinity.org'),
     'CHALLENGE_DOMAIN': os.getenv('CHALLENGE_DOMAIN', 'challs.hacktrinity.org'),
+    'TRAEFIK_NETWORK': os.getenv('TRAEFIK_NETWORK', 'traefik'),
     'CLEANUP_INTERVAL': int(os.getenv('CLEANUP_INTERVAL', '30')),
     'CLEANUP_TIMEOUT': int(os.getenv('CLEANUP_TIMEOUT', '60'))
 })
@@ -33,7 +34,8 @@ app.challenges = challenges.ChallengeManager(
     timeout=app.config['CLEANUP_TIMEOUT'],
     gateway_image=app.config['GATEWAY_IMAGE'],
     gateway_proxy=app.config['GATEWAY_PROXY'],
-    challenge_domain=app.config['CHALLENGE_DOMAIN']
+    challenge_domain=app.config['CHALLENGE_DOMAIN'],
+    traefik_network=app.config['TRAEFIK_NETWORK']
 )
 app.cleanup = cleanup.Cleanup(
     app.challenges,

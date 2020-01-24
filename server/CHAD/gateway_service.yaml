@@ -11,5 +11,8 @@ deploy:
     - 'traefik.http.routers.chad_${chad_id}_gw.rule=Host(`${chad_id}.${chad_challenge_domain}`)'
     - 'traefik.http.routers.chad_${chad_id}_gw.entrypoints=http'
     - 'traefik.http.services.chad_${chad_id}_gw.loadbalancer.server.port=80'
+networks:
+  - default
+  - $chad_traefik_network
 secrets:
   - config_password
