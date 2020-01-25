@@ -1,0 +1,14 @@
+version: '3'
+services:
+  a: &base
+    image: $DOCKER_REGISTRY/chad/challbase
+    build: .
+    command: nc -s 127.0.0.1 -lp 9999
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - CHALLENGE_IP=192.168.137.2/24
+  b:
+    <<: *base
+    environment:
+      - CHALLENGE_IP=192.168.137.3/24
