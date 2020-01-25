@@ -12,6 +12,7 @@ services:
       - CLEANUP_DISABLED=yes
       - CLEANUP_INTERVAL=5
       - CLEANUP_TIMEOUT=10
+      - DOCKER_REGISTRY=$DOCKER_REGISTRY
       - GATEWAY_IMAGE=$DOCKER_REGISTRY/chad/gateway
     ports:
       - 8001:80

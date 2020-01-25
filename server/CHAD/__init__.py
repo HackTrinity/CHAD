@@ -13,6 +13,7 @@ from . import stack, challenges, cleanup
 
 app = Flask(__name__)
 app.config.update({
+    'DOCKER_REGISTRY': os.getenv('DOCKER_REGISTRY', 'example.com'),
     'ID_SALT': var_or_secret('ID_SALT', 'TESTTESTTEST'),
     'FLAG_PREFIX': os.getenv('FLAG_PREFIX', 'CTF'),
     'REDIS_URL': os.getenv('REDIS_URL', 'redis://redis'),
@@ -30,6 +31,7 @@ app.challenges = challenges.ChallengeManager(
     stack.StackManager(),
     app.redis,
     app.config['ID_SALT'],
+    docker_registry=app.config['DOCKER_REGISTRY'],
     flag_prefix=app.config['FLAG_PREFIX'],
     timeout=app.config['CLEANUP_TIMEOUT'],
     gateway_image=app.config['GATEWAY_IMAGE'],

@@ -1,12 +1,12 @@
 image: $chad_gateway_image
 environment:
   - __CAP_ADD=NET_ADMIN
+  - CHALLENGE_POOL=$chad_challenge_pool
   - PROXY=$chad_gateway_proxy
   - DOMAIN=$chad_challenge_domain
   - INSTANCE_ID=$chad_id
   - CONFIG_PASSWORD_FILE=/run/secrets/config_password
 deploy:
-  endpoint_mode: dnsrr
   labels:
     - 'traefik.enable=true'
     - 'traefik.tcp.routers.chad_${chad_id}_gw.rule=HostSNI(`CONNECT:${chad_id}.${chad_challenge_domain}:1194`)'

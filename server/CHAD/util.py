@@ -1,9 +1,14 @@
 from functools import wraps
+import itertools
 import random
 import os
 
 from marshmallow import Schema
 from flask import request, jsonify
+
+def nth(iterable, n, default=None):
+    "Returns the nth item or a default value"
+    return next(itertools.islice(iterable, n, None), default)
 
 def var_or_secret(var, default=None, default_file=None, binary=False):
     value = os.getenv(var)

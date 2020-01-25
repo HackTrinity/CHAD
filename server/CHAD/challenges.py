@@ -3,6 +3,7 @@ import json
 import tempfile
 import time
 import secrets
+import ipaddress
 
 import yaml
 import dpath.util as dpath
@@ -12,6 +13,7 @@ from . import util
 
 LABEL_PREFIX = 'org.hacktrinity.chad'
 LABEL_PRIMARY = f'{LABEL_PREFIX}.primary'
+CHALLENGE_NETWORK_START = 50
 
 def stack_name(c, u):
     return f'chad_{c}_{u}'
@@ -20,7 +22,7 @@ class ChallengeException(Exception):
     pass
 
 class ChallengeManager:
-    def __init__(self, docker, stacks, redis, salt, flag_prefix='CTF', timeout=60,
+    def __init__(self, docker, stacks, redis, salt, docker_registry='example.com', flag_prefix='CTF', timeout=60,
         gateway_image='chad-gateway', gateway_proxy='chad-gw.sys.hacktrinity.org',
         challenge_domain='challs.hacktrinity.org', traefik_network='traefik'):
         self.ids = hashids.Hashids(salt, min_length=10)
@@ -30,6 +32,7 @@ class ChallengeManager:
         self.stacks = stacks
         self.redis = redis
         self.timeout = timeout
+        self.docker_registry = docker_registry
         self.gateway_image = gateway_image
         self.gateway_proxy = gateway_proxy
         self.challenge_domain = challenge_domain
@@ -55,7 +58,17 @@ class ChallengeManager:
                 self.stacks.rm(stack)
                 self.redis.delete(key)
 
-    def create(self, challenge_id, user_id, stack, service, needs_flag=True, needs_gateway=False):
+    @staticmethod
+    def _net_to_pool(net):
+        net = ipaddress.IPv4Network(net)
+        start = util.nth(net, 50)
+        if not start:
+            raise ChallengeException(f'Network {net} is too small')
+
+        *_, end, _broadcast = net
+        return start, end, net.netmask
+
+    def create(self, challenge_id, user_id, stack, service, needs_flag=True, gateway_network=None):
         result = {'id': self.ids.encode(challenge_id, user_id)}
         name = stack_name(challenge_id, user_id)
         if name in self.stacks.ls():
@@ -64,14 +77,19 @@ class ChallengeManager:
         stack_context = {
             'chad_id': result['id']
         }
-        if needs_gateway:
+        if gateway_network:
+            start, end, mask = ChallengeManager._net_to_pool(gateway_network)
+
             stack_context.update({
+                'chad_docker_registry': self.docker_registry,
                 'chad_gateway_image': self.gateway_image,
                 'chad_gateway_proxy': self.gateway_proxy,
                 'chad_challenge_domain': self.challenge_domain,
-                'chad_traefik_network': self.traefik_network
+                'chad_traefik_network': self.traefik_network,
+                'chad_challenge_pool': f'{start} {end} {mask}'
             })
-            config_password = secrets.token_urlsafe(32)
+
+            config_password = secrets.token_urlsafe(16)
             result['gateway_config_password'] = config_password
             gw_password_tmp = tempfile.NamedTemporaryFile('w', prefix='gw_pwd', encoding='ascii')
             gw_password_tmp.write(f'{config_password}\n')
@@ -82,7 +100,7 @@ class ChallengeManager:
             dpath.new(stack, 'secrets/config_password/file', gw_password_tmp.name)
 
         stack_template = Template(json.dumps(stack))
-        stack = json.loads(stack_template.substitute(**stack_context))
+        stack = json.loads(stack_template.safe_substitute(**stack_context))
 
         dpath.new(stack, f'services/{service}/deploy/labels/{LABEL_PRIMARY}', 'true')
         if needs_flag:
@@ -100,7 +118,7 @@ class ChallengeManager:
 
         self.redis.set(f'{name}_last_ping', int(time.time()))
         self.stacks.deploy(name, stack, registry_auth=True)
-        if needs_gateway:
+        if gateway_network:
             gw_password_tmp.close()
         if needs_flag:
             secret_tmp.close()

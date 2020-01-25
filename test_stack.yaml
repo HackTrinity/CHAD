@@ -1,7 +1,10 @@
 version: '3.3'
 services:
   app:
-    image: nginx:alpine
-    command: /bin/sh -c 'cp /run/secrets/flag.txt /usr/share/nginx/html/flag.txt && nginx -g "daemon off;"'
+    image: $chad_docker_registry/chad/challbase
+    command: ["/bin/sh", "-c", "apk add darkhttpd && darkhttpd /run/secrets"]
     environment:
+      KEEP_INTERNET: '1'
+      KEEP_ROOT: '1'
+      CHALLENGE_IP: 192.168.137.1/24
       CHALL_ID: $chad_id
