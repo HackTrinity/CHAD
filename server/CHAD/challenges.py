@@ -102,6 +102,8 @@ class ChallengeManager:
         stack_template = Template(json.dumps(stack))
         stack = json.loads(stack_template.safe_substitute(**stack_context))
 
+        # Docker Swarm overlay networks don't FUCKING SUPPORT MULTICAST
+        dpath.new(stack, 'networks/default/driver', 'weaveworks/net-plugin:latest_release')
         dpath.new(stack, f'services/{service}/deploy/labels/{LABEL_PRIMARY}', 'true')
         if needs_flag:
             result['flag'] = self.flags.next_flag()

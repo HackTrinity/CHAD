@@ -120,7 +120,7 @@ openvpn --mktun --dev-type tap --dev gw
 ip link set dev gw up
 ip link set dev gw master gw-bridge
 
-ip link add challenge type vxlan id 1337 group 239.137.137.137 dev eth0 dstport 4789
+ip link add challenge type vxlan id 1337 group 239.137.137.137 dev ethwe0 dstport 4789
 ip link set dev challenge up
 ip link set dev challenge master gw-bridge
 

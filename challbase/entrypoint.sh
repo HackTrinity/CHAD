@@ -8,7 +8,7 @@ info() {
     echo -e ":: ${BLUE}${@}${NC}"
 }
 
-VXLAN_OUT="eth0"
+VXLAN_OUT="ethwe0"
 VXLAN_IFACE="challenge"
 VXLAN_ID=1337
 VXLAN_MCAST="239.137.137.137"
@@ -23,7 +23,7 @@ setup_vxlan() {
     net="$(ip route | grep "${VXLAN_IFACE}.*scope link" | awk '{ print $1 }')"
     iptables -A FORWARD -i "$VXLAN_IFACE" -j DROP
     iptables -A OUTPUT -d "$net" -j ACCEPT
-    iptables -A OUTPUT -o eth0 -p udp --dport 4789 -j ACCEPT
+    iptables -A OUTPUT -o "$VXLAN_OUT" -p udp --dport 4789 -j ACCEPT
     iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED -j ACCEPT
     iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
     iptables -A OUTPUT -d 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16 -j DROP
