@@ -6,11 +6,15 @@ environment:
   - INSTANCE_ID=$chad_id
   - CONFIG_PASSWORD_FILE=/run/secrets/config_password
 deploy:
+  endpoint_mode: dnsrr
   labels:
     - 'traefik.enable=true'
-    - 'traefik.http.routers.chad_${chad_id}_gw.rule=Host(`${chad_id}.${chad_challenge_domain}`)'
-    - 'traefik.http.routers.chad_${chad_id}_gw.entrypoints=http'
-    - 'traefik.http.services.chad_${chad_id}_gw.loadbalancer.server.port=80'
+    - 'traefik.tcp.routers.chad_${chad_id}_gw.rule=HostSNI(`CONNECT:${chad_id}.${chad_challenge_domain}:1194`)'
+    - 'traefik.tcp.routers.chad_${chad_id}_gw.entrypoints=http'
+    - 'traefik.tcp.services.chad_${chad_id}_gw.loadbalancer.server.port=1194'
+    - 'traefik.http.routers.chad_${chad_id}_gwconf.rule=Host(`${chad_id}.${chad_challenge_domain}`)'
+    - 'traefik.http.routers.chad_${chad_id}_gwconf.entrypoints=http'
+    - 'traefik.http.services.chad_${chad_id}_gwconf.loadbalancer.server.port=80'
 networks:
   - default
   - $chad_traefik_network
