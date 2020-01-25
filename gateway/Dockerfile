@@ -1,13 +1,6 @@
-FROM alpine:3.11 AS builder
-WORKDIR /root
-COPY build_nginx_connect.sh .
-RUN ./build_nginx_connect.sh
-
-
 FROM alpine:3.11
-RUN apk --no-cache add pcre easy-rsa openvpn tini && \
+RUN apk --no-cache add easy-rsa openvpn nginx tini && \
     ln -s /usr/share/easy-rsa/easyrsa /usr/bin/easyrsa
-COPY --from=builder /usr/local/nginx /usr/local/nginx
 
 ENV OPENVPN=/etc/openvpn
 ENV EASYRSA=/usr/share/easy-rsa
@@ -29,10 +22,11 @@ ENV INSTANCE_ID=abcdEFGH
 ENV CONFIG_PASSWORD_FILE=/run/secrets/config_password
 
 RUN easyrsa init-pki && \
-    rm /usr/local/nginx/html/index.html && \
-    ln -s "$OPENVPN/client.conf" /usr/local/nginx/html/client.conf
+    rm /var/lib/nginx/html/index.html && \
+    ln -s "$OPENVPN/client.conf" /var/lib/nginx/html/client.conf
 COPY dh.pem $EASYRSA_PKI/dh.pem
 COPY entrypoint.sh /
 
 ENTRYPOINT ["tini", "--", "/entrypoint.sh"]
+EXPOSE 1194/tcp
 EXPOSE 80/tcp

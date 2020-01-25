@@ -37,7 +37,6 @@ tls-auth $EASYRSA_PKI/ta.key 0
 keepalive 10 60
 persist-key
 persist-tun
-local 127.0.0.1
 port 1194
 proto tcp-server
 dev-type tap
@@ -78,10 +77,11 @@ EOF
 
     info "Generating nginx config..."
     PASS_HASH="$(openssl passwd -in $CONFIG_PASSWORD_FILE)"
-    echo "chad:$PASS_HASH" > /usr/local/nginx/conf/auth.conf
-    cat > /usr/local/nginx/conf/nginx.conf <<EOF
+    echo "chad:$PASS_HASH" > /etc/nginx/auth.conf
+    cat > /etc/nginx/nginx.conf <<EOF
+user nginx;
 daemon on;
-user nobody nobody;
+pid /run/nginx.pid;
 worker_processes 1;
 
 events {}
@@ -94,20 +94,15 @@ http {
         listen 80 default_server;
         server_name $SERVER_CN;
 
-        proxy_connect;
-        proxy_connect_address 127.0.0.1;
-        proxy_connect_allow 1194;
-        proxy_connect_connect_timeout 1s;
-        proxy_connect_send_timeout 120s;
-
         location = /client.conf {
             auth_basic "HackTrinity Challenge $INSTANCE_ID";
             auth_basic_user_file auth.conf;
-            root html;
+            root /var/lib/nginx/html;
         }
+
         error_page 500 502 503 504 /50x.html;
         location = /50x.html {
-            root   html;
+            root /var/lib/nginx/html;
         }
     }
 }
@@ -136,5 +131,5 @@ ip route show | grep default || ip route add default via "$GATEWAY"
 
 [ ! -f "$OPENVPN/server.conf" ] && generate_configs
 
-/usr/local/nginx/sbin/nginx
+nginx
 exec openvpn "$OPENVPN/server.conf"
