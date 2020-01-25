@@ -6,6 +6,15 @@ services:
     build: .
     cap_add:
       - NET_ADMIN
+    environment:
+      - CHALLENGE_POOL=192.168.137.50 192.168.137.254 255.255.255.0
     ports:
       - 8002:80
       - 8194:1194/tcp
+  challenge:
+    image: $DOCKER_REGISTRY/chad/challbase
+    command: nc -s 127.0.0.1 -lp 9999
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - CHALLENGE_IP=192.168.137.1/24

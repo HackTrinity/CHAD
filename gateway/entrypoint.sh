@@ -19,14 +19,11 @@ generate_configs() {
 
     info "Generating server key, certificate and configuration..."
     EASYRSA_DN=org easyrsa build-server-full "$SERVER_CN" nopass
-
-    # TODO: Should probably not assume /24
-    ADDR_START="$(ifconfig gw-bridge | grep 'inet addr' | sed -n 's/\s*inet addr:\(\d*\.\d*\.\d*\).*/\1/p')"
     cat > "$OPENVPN/server.conf" <<EOF
 verb 3
 mode server
 tls-server
-ifconfig-pool ${ADDR_START}.50 ${ADDR_START}.254 255.255.255.0
+ifconfig-pool $CHALLENGE_POOL
 
 ca $EASYRSA_PKI/ca.crt
 cert $EASYRSA_PKI/issued/$SERVER_CN.crt
@@ -114,20 +111,18 @@ if [ ! -c /dev/net/tun ]; then
     mknod /dev/net/tun c 10 200
 fi
 
-LAN_IP="$(ip addr show dev $LAN_IFACE | grep inet | awk '{ print $2 }')"
-GATEWAY="$(ip route show | grep default | awk '{ print $3 }')"
-ip addr del "$LAN_IP" dev "$LAN_IFACE"
-
-openvpn --mktun --dev-type tap --dev gw
-ip link set dev gw up
+info "Creating network interfaces..."
 
 ip link add name gw-bridge type bridge
 ip link set dev gw-bridge up
 
-ip link set dev eth0 master gw-bridge
+openvpn --mktun --dev-type tap --dev gw
+ip link set dev gw up
 ip link set dev gw master gw-bridge
-ip addr add dev gw-bridge "$LAN_IP"
-ip route show | grep default || ip route add default via "$GATEWAY"
+
+ip link add challenge type vxlan id 1337 group 239.137.137.137 dev eth0 dstport 4789
+ip link set dev challenge up
+ip link set dev challenge master gw-bridge
 
 [ ! -f "$OPENVPN/server.conf" ] && generate_configs
 

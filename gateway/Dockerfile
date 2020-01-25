@@ -1,5 +1,5 @@
 FROM alpine:3.11
-RUN apk --no-cache add easy-rsa openvpn nginx tini && \
+RUN apk --no-cache add iproute2 easy-rsa openvpn nginx tini && \
     ln -s /usr/share/easy-rsa/easyrsa /usr/bin/easyrsa
 
 ENV OPENVPN=/etc/openvpn
@@ -15,7 +15,7 @@ ENV EASYRSA_REQ_OU=HackTrinity
 ENV EASYRSA_CA_EXPIRE=30
 ENV EASYRSA_CERT_EXPIRE=30
 
-ENV LAN_IFACE=eth0
+ENV CHALLENGE_POOL="192.168.137.50 192.168.137.254 255.255.255.0"
 ENV PROXY=chad-gw.sys.hacktrinity.org
 ENV DOMAIN=challs.hacktrinity.org
 ENV INSTANCE_ID=abcdEFGH
