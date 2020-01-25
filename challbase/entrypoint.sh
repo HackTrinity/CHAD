@@ -25,6 +25,7 @@ setup_vxlan() {
     iptables -A OUTPUT -d "$net" -j ACCEPT
     iptables -A OUTPUT -o eth0 -p udp --dport 4789 -j ACCEPT
     iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED -j ACCEPT
+    iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
     iptables -A OUTPUT -d 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16 -j DROP
 
     if [ -z "$KEEP_INTERNET" ]; then
@@ -37,8 +38,8 @@ setup_vxlan() {
 
 if [ ! -z "$KEEP_ROOT" ]; then
     info "Staying as root while executing '$@'"
-    exec $@
+    exec "$@"
 else
     info "Dropping to nobody:nogroup to execute '$@'"
-    exec su-exec nobody:nogroup $@
+    exec su-exec nobody:nogroup "$@"
 fi
