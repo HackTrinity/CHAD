@@ -76,7 +76,7 @@ dev ht-${INSTANCE_ID}
 EOF
 
     info "Generating nginx config..."
-    PASS_HASH="$(openssl passwd -in $CONFIG_PASSWORD_FILE)"
+    PASS_HASH="$(openssl passwd -5 -in $CONFIG_PASSWORD_FILE)"
     echo "chad:$PASS_HASH" > /etc/nginx/auth.conf
     cat > /etc/nginx/nginx.conf <<EOF
 user nginx;
