@@ -1,13 +1,21 @@
 import subprocess
 import json
 
+class StackError(Exception):
+    pass
+
 class StackManager:
     def __init__(self, sock='unix:///run/docker.sock'):
         self.sock = sock
 
     def _docker_cmd(self, args, *e_args, parse=True, **kwargs):
-        lines = filter(lambda l: l, subprocess.check_output(['docker', '--host', self.sock] + args, *e_args,
-            encoding='utf-8', **kwargs).split('\n'))
+        try:
+            output = subprocess.check_output(['docker', '--host', self.sock] + args, *e_args, stderr=subprocess.STDOUT,
+            encoding='utf-8', **kwargs)
+        except subprocess.CalledProcessError as ex:
+            raise StackError(f'Docker exited with non-zero exit code {ex.returncode}: {ex.output}')
+
+        lines = filter(lambda l: l, output.split('\n'))
 
         if parse:
             return map(json.loads, lines)
