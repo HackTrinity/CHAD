@@ -18,3 +18,7 @@ services:
       - NET_ADMIN
     environment:
       - CHALLENGE_IP=192.168.137.1/24
+
+networks:
+  default:
+    driver: weaveworks/net-plugin:latest_release
