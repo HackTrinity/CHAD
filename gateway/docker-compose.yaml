@@ -7,9 +7,10 @@ services:
     cap_add:
       - NET_ADMIN
     environment:
-      - CHALLENGE_POOL=192.168.137.50 192.168.137.254 255.255.255.0
+      - OVPN_CONFIG=/server.conf
+    volumes:
+      - ./sample.conf:/server.conf:ro
     ports:
-      - 8002:80
       - 8194:1194/tcp
   challenge:
     image: $DOCKER_REGISTRY/chad/challbase
