@@ -6,6 +6,9 @@ until redis-cli -u "$REDIS_URL" ping > /dev/null; do
     sleep 0.2
 done
 
+# Allow DH param to generate on first run
+python -c 'import CHAD'
+
 if [ -z "$CLEANUP_DISABLED" ]; then
     python -m CHAD cleanup &
 fi
