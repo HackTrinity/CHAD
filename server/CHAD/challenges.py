@@ -39,9 +39,6 @@ class ChallengeManager:
         self.gateway_domain = gateway_domain
         self.traefik_network = self.docker.networks.get(traefik_network)
 
-        with open('CHAD/gateway_service.yaml') as gw_service_file:
-            self.gateway_service = yaml.safe_load(gw_service_file)
-
     def cleanup(self, logger=None):
         now = int(time.time())
         for stack in filter(lambda s: s.startswith('chad_'), self.stacks.ls()):
