@@ -17,8 +17,8 @@ NETWORK = ipaddress.IPv4Network('192.168.128.0/17')
 POOL_START = ipaddress.IPv4Address('192.168.255.1')
 POOL_END = ipaddress.IPv4Address('192.168.255.254')
 
-def stack_name(c, u):
-    return f'chad_{c}_{u}'
+def stack_name(u, c):
+    return f'chad_{u}_{c}'
 
 class ChallengeException(Exception):
     pass
@@ -86,7 +86,7 @@ class ChallengeManager:
                 mode=0o440)])
 
     def ensure_gateway_gone(self, user_id):
-        regex = re.compile(f'chad_\\d+_{user_id}$')
+        regex = re.compile(f'chad_{user_id}_\\d+$')
         for stack in self.stacks.ls():
             if regex.match(stack):
                 raise ChallengeException(f'Cannot destroy gateway for user {user_id}, challenge instances are running')
@@ -106,9 +106,9 @@ class ChallengeManager:
         except docker.errors.NotFound:
             pass
 
-    def create(self, challenge_id, user_id, stack, service, needs_flag=True):
-        result = {'id': self.ids.encode(challenge_id, user_id)}
-        name = stack_name(challenge_id, user_id)
+    def create(self, user_id, challenge_id, stack, service, needs_flag=True):
+        result = {'id': self.ids.encode(user_id, challenge_id)}
+        name = stack_name(user_id, challenge_id)
         if name in self.stacks.ls():
             raise ChallengeException(f'An instance of challenge ID {challenge_id} already exists for user ID {user_id}')
 
@@ -147,17 +147,17 @@ class ChallengeManager:
             secret_tmp.close()
         return result
 
-    def ping(self, challenge_id, user_id):
-        name = stack_name(challenge_id, user_id)
+    def ping(self, user_id, challenge_id):
+        name = stack_name(user_id, challenge_id)
         if name not in self.stacks.ls():
             raise ChallengeException(f'An instance of challenge ID {challenge_id} does not exist for user ID {user_id}')
 
         self.redis.set(f'{name}_last_ping', int(time.time()))
 
-    def reset(self, challenge_id, user_id):
+    def reset(self, user_id, challenge_id):
         services = self.docker.services.list(filters={
             'label': [
-                f'com.docker.stack.namespace={stack_name(challenge_id, user_id)}'
+                f'com.docker.stack.namespace={stack_name(user_id, challenge_id)}'
             ]
         })
         if not services:
@@ -166,8 +166,8 @@ class ChallengeManager:
         for service in services:
             service.force_update()
 
-    def delete(self, challenge_id, user_id):
-        name = stack_name(challenge_id, user_id)
+    def delete(self, user_id, challenge_id):
+        name = stack_name(user_id, challenge_id)
         if name not in self.stacks.ls():
             raise ChallengeException(f'An instance of challenge ID {challenge_id} does not exist for user ID {user_id}')
 

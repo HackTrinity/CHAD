@@ -15,8 +15,8 @@ def validate_network(n):
         return False
 
 class CreateInstanceSchema(Schema):
-    challenge_id = fields.Int(required=True, strict=True, validate=Range(min=1))
     user_id = fields.Int(required=True, strict=True, validate=Range(min=1))
+    challenge_id = fields.Int(required=True, strict=True, validate=Range(min=1))
     stack = fields.Dict(required=True)
     service = fields.Str(required=True)
     needs_flag = fields.Bool(missing=True)
@@ -47,24 +47,24 @@ if app.debug:
 @parse_body(create_schema)
 def instance_create(b):
     return jsonify(app.challenges.create(
-        b['challenge_id'],
         b['user_id'],
+        b['challenge_id'],
         b['stack'],
         b['service'],
         b['needs_flag']
     ))
 
-@app.route('/instances/<challenge_id>/<user_id>', methods=['PATCH'])
-def instance_ping(challenge_id, user_id):
-    app.challenges.ping(int(challenge_id), int(user_id))
+@app.route('/instances/<user_id>/<challenge_id>', methods=['PATCH'])
+def instance_ping(user_id, challenge_id):
+    app.challenges.ping(int(user_id), int(challenge_id))
     return '', 204
 
-@app.route('/instances/<challenge_id>/<user_id>', methods=['PUT'])
-def instance_reset(challenge_id, user_id):
-    app.challenges.reset(int(challenge_id), int(user_id))
+@app.route('/instances/<user_id>/<challenge_id>', methods=['PUT'])
+def instance_reset(user_id, challenge_id):
+    app.challenges.reset(int(user_id), int(challenge_id))
     return '', 204
 
-@app.route('/instances/<challenge_id>/<user_id>', methods=['DELETE'])
-def instance_delete(challenge_id, user_id):
-    app.challenges.delete(int(challenge_id), int(user_id))
+@app.route('/instances/<user_id>/<challenge_id>', methods=['DELETE'])
+def instance_delete(user_id, challenge_id):
+    app.challenges.delete(int(user_id), int(challenge_id))
     return '', 204
