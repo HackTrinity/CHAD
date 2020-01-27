@@ -101,8 +101,11 @@ class ChallengeManager:
         stack = json.loads(stack_template.safe_substitute(**stack_context))
 
         # Docker Swarm overlay networks don't FUCKING SUPPORT MULTICAST
-        dpath.new(stack, 'networks/default/driver', 'weaveworks/net-plugin:latest_release')
-        dpath.new(stack, f'networks/chad_{user_id}/external', True)
+        dpath.new(stack, f'networks/challenge', {
+            'driver': 'weaveworks/net-plugin:latest_release',
+            'external': True,
+            'name': f'chad_{user_id}'
+        })
         if needs_flag:
             result['flag'] = self.flags.next_flag()
             secret_tmp = tempfile.NamedTemporaryFile('w', prefix='flag', suffix='.txt', encoding='ascii')

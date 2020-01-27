@@ -1,4 +1,4 @@
-version: '3.3'
+version: '3.5'
 services:
   app:
     image: $chad_docker_registry/chad/challbase
@@ -8,3 +8,5 @@ services:
       KEEP_ROOT: '1'
       CHALLENGE_IP: 192.168.137.1/17
       CHALL_ID: $chad_id
+    networks:
+      - challenge
