@@ -4,6 +4,7 @@ from marshmallow import Schema, fields
 from marshmallow.validate import Range
 from flask import current_app as app, jsonify
 
+from . import challenges
 from .util import parse_body
 
 def validate_network(n):
@@ -21,9 +22,26 @@ class CreateInstanceSchema(Schema):
     needs_flag = fields.Bool(missing=True)
 create_schema = CreateInstanceSchema()
 
-@app.route('/ovpn/<user_id>')
-def ovpn_get(user_id):
+
+@app.route('/gateways/<user_id>', methods=['POST'])
+def gateway_create(user_id):
+    app.challenges.ensure_gateway_up(user_id)
+    return '', 204
+
+@app.route('/gateways/<user_id>', methods=['DELETE'])
+def gateway_delete(user_id):
+    app.challenges.ensure_gateway_gone(user_id)
+    return '', 204
+
+@app.route('/gateways/<user_id>/ovpn/client')
+def ovpn_client_get(user_id):
     return app.pki.generate_client_ovpn(user_id)
+
+if app.debug:
+    @app.route('/gateways/<user_id>/ovpn/server')
+    def ovpn_server_get(user_id):
+        return app.pki.generate_server_ovpn(user_id, challenges.POOL_START, challenges.POOL_END, challenges.NETWORK)
+
 
 @app.route('/instances', methods=['POST'])
 @parse_body(create_schema)

@@ -1,4 +1,5 @@
 from string import Template
+import re
 import json
 import tempfile
 import time
@@ -83,6 +84,27 @@ class ChallengeManager:
                 }, networks=[net.id, self.traefik_network.id],
                 secrets=[docker.types.SecretReference(conf_secret.id, conf_secret_name, filename='server.conf',
                 mode=0o440)])
+
+    def ensure_gateway_gone(self, user_id):
+        regex = re.compile(f'chad_\\d+_{user_id}$')
+        for stack in self.stacks.ls():
+            if regex.match(stack):
+                raise ChallengeException(f'Cannot destroy gateway for user {user_id}, challenge instances are running')
+
+        try:
+            self.docker.services.get(f'chad_{user_id}_gw').remove()
+        except docker.errors.NotFound:
+            pass
+
+        try:
+            self.docker.secrets.get(f'chad_{user_id}_gwconf').remove()
+        except docker.errors.NotFound:
+            pass
+
+        try:
+            self.docker.networks.get(f'chad_{user_id}').remove()
+        except docker.errors.NotFound:
+            pass
 
     def create(self, challenge_id, user_id, stack, service, needs_flag=True):
         result = {'id': self.ids.encode(challenge_id, user_id)}
