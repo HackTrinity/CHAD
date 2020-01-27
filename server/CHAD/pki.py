@@ -15,7 +15,7 @@ class EasyRSA:
         self.easyrsa = easyrsa
         self.days = days
         self.dn = {
-            'country': 'Ireland',
+            'country': 'IE',
             'state': 'Dublin',
             'city': 'Dublin',
             'org': 'Netsoc',
@@ -37,19 +37,22 @@ class EasyRSA:
 
     def _cmd(self, command, options=None, cn=None, dn_org=False, **proc_options):
         try:
-            args = ['easyrsa', '--batch', '--pki-dir', self.dir, '--days', str(self.days), '--dn-mode']
+            args = ['easyrsa', '--batch', f'--pki-dir={self.dir}', f'--days={self.days}']
             if dn_org:
                 args += [
-                    'dn',
-                    '--req-c',      self.dn['country'],
-                    '--req-st',     self.dn['state'],
-                    '--req-city',   self.dn['city'],
-                    '--req-org',    self.dn['org'],
-                    '--req-email',  self.dn['email'],
-                    '--req-ou',     self.dn['ou']
+                    '--dn-mode=org',
+                    f'--req-c={self.dn["country"]}',
+                    f'--req-st={self.dn["state"]}',
+                    f'--req-city={self.dn["city"]}',
+                    f'--req-org={self.dn["org"]}',
+                    f'--req-email={self.dn["email"]}',
+                    f'--req-ou={self.dn["ou"]}'
                 ]
             else:
-                args.append('cn_only')
+                args.append('--dn-mode=cn_only')
+
+            if cn:
+                args.append(f'--req-cn={cn}')
 
             args.append(command)
 
@@ -85,7 +88,7 @@ class EasyRSA:
         self._cmd('build-ca', ['nopass', 'subca'], cn=self.name, dn_org=True)
         return path.join(self.dir, 'reqs/ca.req')
 
-    def build_child_ca(self, child: EasyRSA):
+    def build_child_ca(self, child):
         child_ca_path = path.join(child.dir, 'ca.crt')
         if path.exists(child_ca_path):
             return False
@@ -95,13 +98,13 @@ class EasyRSA:
 
         self._cmd('import-req', [req_path, req_name])
         self._cmd('sign-req', ['ca', req_name])
-        os.symlink(path.join(self.dir, f'{req_name}.crt'), child_ca_path)
+        os.symlink(path.join(self.dir, 'issued', f'{req_name}.crt'), child_ca_path)
         return True
 
     def build_full(self, type_, name):
         cert_path = path.join(self.dir, 'issued', f'{name}.crt')
         key_path = path.join(self.dir, 'private', f'{name}.key')
-        if path.os.exists(cert_path):
+        if path.exists(cert_path):
             return cert_path, key_path
 
         self._cmd(f'build-{type_}-full', [name, 'nopass'])
@@ -134,6 +137,8 @@ class PKI:
             self.root.build_child_ca(rsa)
             rsa.gen_ovpn_key()
             self.users[user_id] = rsa
+            self.get_server(user_id)
+            self.get_client(user_id)
         return self.users[user_id]
 
     def get_server(self, user_id):
@@ -153,12 +158,11 @@ class PKI:
             key=self._read_user_file(user_id, f'private/{user_id}.{self.domain}.key'),
             dh=self._read_user_file(user_id, f'dh.pem'),
             ta_key=self._read_user_file(user_id, f'ta.key'))
-    def generate_client_ovpn(self, user_id, iface):
-        return self.server_template.substitute(
+    def generate_client_ovpn(self, user_id):
+        return self.client_template.substitute(
             ca=self._read_user_file(user_id, 'ca.crt'),
             cert=self._read_user_file(user_id, f'issued/{user_id}.{self.domain}.crt'),
             key=self._read_user_file(user_id, f'private/{user_id}.{self.domain}.key'),
             ta_key=self._read_user_file(user_id, f'ta.key'),
             server=f'{user_id}.{self.domain}',
-            proxy=self.domain,
-            iface=iface)
+            proxy=self.domain)

@@ -6,5 +6,5 @@ services:
     environment:
       KEEP_INTERNET: '1'
       KEEP_ROOT: '1'
-      CHALLENGE_IP: 192.168.137.1/24
+      CHALLENGE_IP: 192.168.137.1/17
       CHALL_ID: $chad_id

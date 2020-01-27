@@ -23,8 +23,6 @@ def create(args):
         'service': args.service,
         'needs_flag': args.needs_flag
     }
-    if args.gateway_network:
-        body['gateway_network'] = args.gateway_network
     res = requests.post(f'{args.host}/instances', json=body)
     pfallback(res)
 
@@ -54,7 +52,6 @@ def main():
     c_create.add_argument('-c', '--challenge-id', type=int, default=1, help='Challenge ID')
     c_create.add_argument('-u', '--user-id', type=int, default=1, help='User ID')
     c_create.add_argument('-f', '--without-flag', action='store_false', dest='needs_flag', help='Request flag')
-    c_create.add_argument('-g', '--gateway-network', help='Create gateway on network')
     c_create.add_argument('stack', help='Path to stack YAML')
     c_create.add_argument('service', help='Primary challenge service')
 

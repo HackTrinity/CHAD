@@ -19,8 +19,11 @@ class CreateInstanceSchema(Schema):
     stack = fields.Dict(required=True)
     service = fields.Str(required=True)
     needs_flag = fields.Bool(missing=True)
-    gateway_network = fields.String(validate=validate_network, missing='')
 create_schema = CreateInstanceSchema()
+
+@app.route('/ovpn/<user_id>')
+def ovpn_get(user_id):
+    return app.pki.generate_client_ovpn(user_id)
 
 @app.route('/instances', methods=['POST'])
 @parse_body(create_schema)
@@ -30,8 +33,7 @@ def instance_create(b):
         b['user_id'],
         b['stack'],
         b['service'],
-        b['needs_flag'],
-        b['gateway_network']
+        b['needs_flag']
     ))
 
 @app.route('/instances/<challenge_id>/<user_id>', methods=['PATCH'])

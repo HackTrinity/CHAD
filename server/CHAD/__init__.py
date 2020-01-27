@@ -1,3 +1,4 @@
+# pylint: disable=wrong-import-order,wrong-import-position
 from gevent import monkey; monkey.patch_all()
 
 import os
@@ -9,7 +10,7 @@ from marshmallow.exceptions import ValidationError
 from flask import Flask, jsonify
 
 from .util import var_or_secret
-from . import stack, challenges, cleanup
+from . import stack, pki, challenges, cleanup
 
 app = Flask(__name__)
 app.config.update({
@@ -18,16 +19,17 @@ app.config.update({
     'FLAG_PREFIX': os.getenv('FLAG_PREFIX', 'CTF'),
     'REDIS_URL': os.getenv('REDIS_URL', 'redis://redis'),
     'GATEWAY_IMAGE': os.getenv('GATEWAY_IMAGE', 'chad-gateway'),
-    'GATEWAY_PROXY': os.getenv('GATEWAY_PROXY', 'chad-gw.sys.hacktrinity.org'),
-    'CHALLENGE_DOMAIN': os.getenv('CHALLENGE_DOMAIN', 'challs.hacktrinity.org'),
+    'GATEWAY_DOMAIN': os.getenv('GATEWAY_PROXY', 'chad-gw.sys.hacktrinity.org'),
     'TRAEFIK_NETWORK': os.getenv('TRAEFIK_NETWORK', 'traefik'),
     'CLEANUP_INTERVAL': int(os.getenv('CLEANUP_INTERVAL', '30')),
     'CLEANUP_TIMEOUT': int(os.getenv('CLEANUP_TIMEOUT', '60'))
 })
 
 app.redis = redis.from_url(app.config['REDIS_URL'])
+app.pki = pki.PKI(domain=app.config['GATEWAY_DOMAIN'])
 app.challenges = challenges.ChallengeManager(
     docker.from_env(),
+    app.pki,
     stack.StackManager(),
     app.redis,
     app.config['ID_SALT'],
@@ -35,8 +37,7 @@ app.challenges = challenges.ChallengeManager(
     flag_prefix=app.config['FLAG_PREFIX'],
     timeout=app.config['CLEANUP_TIMEOUT'],
     gateway_image=app.config['GATEWAY_IMAGE'],
-    gateway_proxy=app.config['GATEWAY_PROXY'],
-    challenge_domain=app.config['CHALLENGE_DOMAIN'],
+    gateway_domain=app.config['GATEWAY_DOMAIN'],
     traefik_network=app.config['TRAEFIK_NETWORK']
 )
 app.cleanup = cleanup.Cleanup(

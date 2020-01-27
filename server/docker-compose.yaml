@@ -17,5 +17,6 @@ services:
     ports:
       - 8001:80
     volumes:
+      - ./pki:/etc/chad_pki
       - /var/run/docker.sock:/run/docker.sock
       - ./CHAD:/opt/CHAD:ro

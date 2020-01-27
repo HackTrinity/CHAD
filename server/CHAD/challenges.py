@@ -2,18 +2,20 @@ from string import Template
 import json
 import tempfile
 import time
-import secrets
 import ipaddress
 
 import yaml
 import dpath.util as dpath
 import hashids
+import docker
 
-from . import util
+from . import util, pki
 
 LABEL_PREFIX = 'org.hacktrinity.chad'
-LABEL_PRIMARY = f'{LABEL_PREFIX}.primary'
-CHALLENGE_NETWORK_START = 50
+
+NETWORK = ipaddress.IPv4Network('192.168.128.0/17')
+POOL_START = ipaddress.IPv4Address('192.168.255.1')
+POOL_END = ipaddress.IPv4Address('192.168.255.254')
 
 def stack_name(c, u):
     return f'chad_{c}_{u}'
@@ -22,21 +24,20 @@ class ChallengeException(Exception):
     pass
 
 class ChallengeManager:
-    def __init__(self, docker, stacks, redis, salt, docker_registry='example.com', flag_prefix='CTF', timeout=60,
-        gateway_image='chad-gateway', gateway_proxy='chad-gw.sys.hacktrinity.org',
-        challenge_domain='challs.hacktrinity.org', traefik_network='traefik'):
+    def __init__(self, docker_, pki_: pki.PKI, stacks, redis, salt, docker_registry='example.com', flag_prefix='CTF',
+        timeout=60, gateway_image='chad-gateway', gateway_domain='chad-gw.sys.hacktrinity.org', traefik_network='traefik'):
         self.ids = hashids.Hashids(salt, min_length=10)
         self.flags = util.FlagGenerator(prefix=flag_prefix)
 
-        self.docker = docker
+        self.docker = docker_
+        self.pki = pki_
         self.stacks = stacks
         self.redis = redis
         self.timeout = timeout
         self.docker_registry = docker_registry
         self.gateway_image = gateway_image
-        self.gateway_proxy = gateway_proxy
-        self.challenge_domain = challenge_domain
-        self.traefik_network = traefik_network
+        self.gateway_domain = gateway_domain
+        self.traefik_network = self.docker.networks.get(traefik_network)
 
         with open('CHAD/gateway_service.yaml') as gw_service_file:
             self.gateway_service = yaml.safe_load(gw_service_file)
@@ -58,53 +59,54 @@ class ChallengeManager:
                 self.stacks.rm(stack)
                 self.redis.delete(key)
 
-    @staticmethod
-    def _net_to_pool(net):
-        net = ipaddress.IPv4Network(net)
-        start = util.nth(net, 50)
-        if not start:
-            raise ChallengeException(f'Network {net} is too small')
+    def ensure_gateway_up(self, user_id):
+        service_name = f'chad_{user_id}_gw'
+        try:
+            self.docker.services.get(service_name)
+        except docker.errors.NotFound:
+            net_name = f'chad_{user_id}'
+            try:
+                net = self.docker.networks.get(net_name)
+            except docker.errors.NotFound:
+                self.docker.networks.create(net_name, driver='weaveworks/net-plugin:latest_release')
+                net = self.docker.networks.get(net_name)
 
-        *_, end, _broadcast = net
-        return start, end, net.netmask
+            conf_secret_name = f'chad_{user_id}_gwconf'
+            try:
+                conf_secret = self.docker.secrets.get(conf_secret_name)
+            except docker.errors.NotFound:
+                conf = self.pki.generate_server_ovpn(user_id, POOL_START, POOL_END, NETWORK)
+                self.docker.secrets.create(name=conf_secret_name, data=conf)
+                conf_secret = self.docker.secrets.get(conf_secret_name)
 
-    def create(self, challenge_id, user_id, stack, service, needs_flag=True, gateway_network=None):
+            self.docker.services.create(self.gateway_image, name=service_name, env=['__CAP_ADD=NET_ADMIN'], labels={
+                    'traefik.enable': 'true',
+                    f'traefik.tcp.routers.chad_{user_id}_gw.rule': f'HostSNI(`CONNECT:{user_id}.{self.gateway_domain}:1194`)',
+                    f'traefik.tcp.routers.chad_{user_id}.entrypoints': 'http',
+                    f'traefik.tcp.services.chad_{user_id}.loadbalancer.server.port': '1194'
+                }, networks=[net.id, self.traefik_network.id],
+                secrets=[docker.types.SecretReference(conf_secret.id, conf_secret_name, filename='server.conf',
+                mode=0o440)])
+
+    def create(self, challenge_id, user_id, stack, service, needs_flag=True):
         result = {'id': self.ids.encode(challenge_id, user_id)}
         name = stack_name(challenge_id, user_id)
         if name in self.stacks.ls():
             raise ChallengeException(f'An instance of challenge ID {challenge_id} already exists for user ID {user_id}')
 
+        self.ensure_gateway_up(user_id)
+
         stack_context = {
-            'chad_id': result['id']
+            'chad_id': result['id'],
+            'chad_docker_registry': self.docker_registry
         }
-        if gateway_network:
-            start, end, mask = ChallengeManager._net_to_pool(gateway_network)
-
-            stack_context.update({
-                'chad_docker_registry': self.docker_registry,
-                'chad_gateway_image': self.gateway_image,
-                'chad_gateway_proxy': self.gateway_proxy,
-                'chad_challenge_domain': self.challenge_domain,
-                'chad_traefik_network': self.traefik_network,
-                'chad_challenge_pool': f'{start} {end} {mask}'
-            })
-
-            config_password = secrets.token_urlsafe(16)
-            result['gateway_config_password'] = config_password
-            gw_password_tmp = tempfile.NamedTemporaryFile('w', prefix='gw_pwd', encoding='ascii')
-            gw_password_tmp.write(f'{config_password}\n')
-            gw_password_tmp.flush()
-
-            dpath.new(stack, 'services/gateway', self.gateway_service)
-            dpath.new(stack, f'networks/{self.traefik_network}/external', True)
-            dpath.new(stack, 'secrets/config_password/file', gw_password_tmp.name)
 
         stack_template = Template(json.dumps(stack))
         stack = json.loads(stack_template.safe_substitute(**stack_context))
 
         # Docker Swarm overlay networks don't FUCKING SUPPORT MULTICAST
         dpath.new(stack, 'networks/default/driver', 'weaveworks/net-plugin:latest_release')
-        dpath.new(stack, f'services/{service}/deploy/labels/{LABEL_PRIMARY}', 'true')
+        dpath.new(stack, f'networks/chad_{user_id}/external', True)
         if needs_flag:
             result['flag'] = self.flags.next_flag()
             secret_tmp = tempfile.NamedTemporaryFile('w', prefix='flag', suffix='.txt', encoding='ascii')
@@ -120,8 +122,6 @@ class ChallengeManager:
 
         self.redis.set(f'{name}_last_ping', int(time.time()))
         self.stacks.deploy(name, stack, registry_auth=True)
-        if gateway_network:
-            gw_password_tmp.close()
         if needs_flag:
             secret_tmp.close()
         return result
