@@ -4,7 +4,6 @@ import tempfile
 import time
 import ipaddress
 
-import yaml
 import dpath.util as dpath
 import hashids
 import docker
