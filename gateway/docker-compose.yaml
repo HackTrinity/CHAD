@@ -9,7 +9,7 @@ services:
     environment:
       - OVPN_CONFIG=/server.conf
     volumes:
-      - ./sample.conf:/server.conf:ro
+      - ./sample_server.conf:/server.conf:ro
     ports:
       - 8194:1194/tcp
   challenge:
