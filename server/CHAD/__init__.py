@@ -22,7 +22,8 @@ app.config.update({
     'GATEWAY_DOMAIN': os.getenv('GATEWAY_PROXY', 'chad-gw.sys.hacktrinity.org'),
     'TRAEFIK_NETWORK': os.getenv('TRAEFIK_NETWORK', 'traefik'),
     'CLEANUP_INTERVAL': int(os.getenv('CLEANUP_INTERVAL', '30')),
-    'CLEANUP_TIMEOUT': int(os.getenv('CLEANUP_TIMEOUT', '60'))
+    'CLEANUP_INSTANCE_TIMEOUT': int(os.getenv('CLEANUP_INSTANCE_TIMEOUT', '60')),
+    'CLEANUP_GATEWAY_TIMEOUT': int(os.getenv('CLEANUP_GATEWAY_TIMEOUT', '120'))
 })
 
 app.redis = redis.from_url(app.config['REDIS_URL'])
@@ -35,7 +36,8 @@ app.challenges = challenges.ChallengeManager(
     app.config['ID_SALT'],
     docker_registry=app.config['DOCKER_REGISTRY'],
     flag_prefix=app.config['FLAG_PREFIX'],
-    timeout=app.config['CLEANUP_TIMEOUT'],
+    instance_timeout=app.config['CLEANUP_INSTANCE_TIMEOUT'],
+    gateway_timeout=app.config['CLEANUP_GATEWAY_TIMEOUT'],
     gateway_image=app.config['GATEWAY_IMAGE'],
     gateway_domain=app.config['GATEWAY_DOMAIN'],
     traefik_network=app.config['TRAEFIK_NETWORK']
