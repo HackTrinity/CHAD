@@ -101,16 +101,16 @@ class EasyRSA:
         os.symlink(path.join(self.dir, 'issued', f'{req_name}.crt'), child_ca_path)
         return True
 
-    def build_full(self, type_, name):
+    def build_full(self, type_, name, **kwargs):
         cert_path = path.join(self.dir, 'issued', f'{name}.crt')
         key_path = path.join(self.dir, 'private', f'{name}.key')
         if path.exists(cert_path):
             return cert_path, key_path
 
-        self._cmd(f'build-{type_}-full', [name, 'nopass'])
+        self._cmd(f'build-{type_}-full', [name, 'nopass'], **kwargs)
         return cert_path, key_path
     def build_server(self, name='server'):
-        return self.build_full('server', name)
+        return self.build_full('server', name, dn_org=True)
     def build_client(self, name='client'):
         return self.build_full('client', name)
 
@@ -134,7 +134,7 @@ class PKI:
         if user_id not in self.users:
             rsa = EasyRSA(id_, f'HackTrinity CHAD User {user_id} CA', path.join(self.dir, id_),
                 easyrsa=self.root.easyrsa, dn=self.root.dn, existing_dh=path.join(self.root.dir, 'dh.pem'))
-            self.root.build_child_ca(rsa)
+            rsa.build_ca()
             rsa.gen_ovpn_key()
             self.users[user_id] = rsa
             self.get_server(user_id)
@@ -146,6 +146,9 @@ class PKI:
     def get_client(self, user_id):
         return self._get_user(user_id).build_client()
 
+    def _read_file(self, p):
+        with open(path.join(self.root.dir, p)) as f:
+            return f.read()
     def _read_user_file(self, user_id, p):
         rsa = self._get_user(user_id)
         with open(path.join(rsa.dir, p)) as f:
@@ -161,8 +164,8 @@ class PKI:
     def generate_client_ovpn(self, user_id):
         return self.client_template.substitute(
             ca=self._read_user_file(user_id, 'ca.crt'),
-            cert=self._read_user_file(user_id, f'issued/{user_id}.{self.domain}.crt'),
-            key=self._read_user_file(user_id, f'private/{user_id}.{self.domain}.key'),
+            cert=self._read_user_file(user_id, f'issued/client.crt'),
+            key=self._read_user_file(user_id, f'private/client.key'),
             ta_key=self._read_user_file(user_id, f'ta.key'),
             server=f'{user_id}.{self.domain}',
             proxy=self.domain)
