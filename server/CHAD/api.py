@@ -17,7 +17,6 @@ def validate_network(n):
 class CreateInstanceSchema(Schema):
     stack = fields.Dict(required=True)
     service = fields.Str(required=True)
-    needs_flag = fields.Bool(missing=True)
     flag = fields.Field(required=True)
 
     @post_load
