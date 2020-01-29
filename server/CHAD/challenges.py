@@ -22,7 +22,11 @@ GATEWAY_SERVICE_REGEX = re.compile('chad_(\\d+)_gw$')
 def stack_name(u, c):
     return f'chad_{u}_{c}'
 
-class ChallengeException(Exception):
+class ChallengeError(Exception):
+    pass
+class InstanceExistsError(ChallengeError):
+    pass
+class InstanceNotFoundError(ChallengeError):
     pass
 
 class ChallengeManager:
@@ -84,7 +88,7 @@ class ChallengeManager:
                     if logger:
                         logger.info('cleaned up defunct gateway for user %d', user_id)
                     self.redis.delete(key)
-                except ChallengeException:
+                except InstanceExistsError:
                     logger.debug('NOT cleaning up defunct gateway for user %d (instances still running)', user_id)
 
     def ensure_gateway_up(self, user_id):
@@ -124,7 +128,7 @@ class ChallengeManager:
         regex = re.compile(f'chad_{user_id}_\\d+$')
         for stack in self.stacks.ls():
             if regex.match(stack):
-                raise ChallengeException(f'Cannot destroy gateway for user {user_id}, challenge instances are running')
+                raise InstanceExistsError(f'Cannot destroy gateway for user {user_id}, challenge instances are running')
 
         try:
             self.docker.services.get(f'chad_{user_id}_gw').remove()
@@ -145,7 +149,7 @@ class ChallengeManager:
         result = {'id': self.ids.encode(user_id, challenge_id)}
         name = stack_name(user_id, challenge_id)
         if name in self.stacks.ls():
-            raise ChallengeException(f'An instance of challenge ID {challenge_id} already exists for user ID {user_id}')
+            raise InstanceExistsError(f'An instance of challenge ID {challenge_id} already exists for user ID {user_id}')
 
         self.ensure_gateway_up(user_id)
 
@@ -185,7 +189,7 @@ class ChallengeManager:
     def ping(self, user_id, challenge_id):
         name = stack_name(user_id, challenge_id)
         if name not in self.stacks.ls():
-            raise ChallengeException(f'An instance of challenge ID {challenge_id} does not exist for user ID {user_id}')
+            raise InstanceNotFoundError(f'An instance of challenge ID {challenge_id} does not exist for user ID {user_id}')
 
         now = int(time.time())
         self.redis.set(f'chad_{user_id}_gw_last_ping', now)
@@ -198,7 +202,7 @@ class ChallengeManager:
             ]
         })
         if not services:
-            raise ChallengeException(f'An instance of challenge ID {challenge_id} does not exist for user ID {user_id}')
+            raise InstanceNotFoundError(f'An instance of challenge ID {challenge_id} does not exist for user ID {user_id}')
 
         for service in services:
             service.force_update()
@@ -206,6 +210,6 @@ class ChallengeManager:
     def delete(self, user_id, challenge_id):
         name = stack_name(user_id, challenge_id)
         if name not in self.stacks.ls():
-            raise ChallengeException(f'An instance of challenge ID {challenge_id} does not exist for user ID {user_id}')
+            raise InstanceNotFoundError(f'An instance of challenge ID {challenge_id} does not exist for user ID {user_id}')
 
         self.stacks.rm(name)

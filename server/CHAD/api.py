@@ -68,3 +68,11 @@ def instance_reset(user_id, challenge_id):
 def instance_delete(user_id, challenge_id):
     app.challenges.delete(int(user_id), int(challenge_id))
     return '', 204
+
+@app.errorhandler(challenges.InstanceNotFoundError)
+def err_instance_not_found(e):
+    return jsonify({'message': str(e)}), 404
+
+@app.errorhandler(challenges.InstanceExistsError)
+def err_instance_exists(e):
+    return jsonify({'message': str(e)}), 409
