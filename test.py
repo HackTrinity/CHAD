@@ -17,13 +17,11 @@ def create(args):
         stack = yaml.safe_load(stack_file)
 
     body = {
-        'user_id': args.user_id,
-        'challenge_id': args.challenge_id,
         'stack': stack,
         'service': args.service,
         'flag': args.flag
     }
-    res = requests.post(f'{args.host}/instances', json=body)
+    res = requests.post(f'{args.host}/instances/{args.user_id}/{args.challenge_id}', json=body)
     pfallback(res)
 
 def ping(args):

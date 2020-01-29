@@ -15,8 +15,6 @@ def validate_network(n):
         return False
 
 class CreateInstanceSchema(Schema):
-    user_id = fields.Int(required=True, strict=True, validate=Range(min=1))
-    challenge_id = fields.Int(required=True, strict=True, validate=Range(min=1))
     stack = fields.Dict(required=True)
     service = fields.Str(required=True)
     needs_flag = fields.Bool(missing=True)
@@ -53,12 +51,12 @@ if app.debug:
         return app.pki.generate_server_ovpn(user_id, challenges.POOL_START, challenges.POOL_END, challenges.NETWORK)
 
 
-@app.route('/instances', methods=['POST'])
+@app.route('/instances/<user_id>/<challenge_id>', methods=['POST'])
 @parse_body(create_schema)
-def instance_create(b):
+def instance_create(b, user_id, challenge_id):
     return jsonify(app.challenges.create(
-        b['user_id'],
-        b['challenge_id'],
+        int(user_id),
+        int(challenge_id),
         b['stack'],
         b['service'],
         b['flag']
