@@ -25,8 +25,8 @@ class CreateInstanceSchema(Schema):
     @post_load
     def check_flag(self, data, **_kwargs):
         if not isinstance(data['flag'], str) and \
-            not isinstance(data['flag'], int) and \
-            not isinstance(data['flag'], bool):
+            not isinstance(data['flag'], bool) and \
+            not isinstance(data['flag'], int):
             raise ValidationError('"flag" must be a boolean, an integer or a string')
         return data
 
