@@ -4,7 +4,7 @@ from marshmallow import Schema, fields, post_load, ValidationError
 from marshmallow.validate import Range
 from flask import current_app as app, jsonify
 
-from . import challenges
+from . import util, challenges
 from .util import parse_body
 
 def validate_network(n):
@@ -24,8 +24,10 @@ class CreateInstanceSchema(Schema):
 
     @post_load
     def check_flag(self, data, **_kwargs):
-        if not isinstance(data['flag'], bool) and not isinstance(data['flag'], str):
-            raise ValidationError('"flag" must be a boolean or a string')
+        if not isinstance(data['flag'], str) and \
+            not isinstance(data['flag'], int) and \
+            not isinstance(data['flag'], bool):
+            raise ValidationError('"flag" must be a boolean, an integer or a string')
         return data
 
 create_schema = CreateInstanceSchema()
@@ -76,6 +78,11 @@ def instance_reset(user_id, challenge_id):
 def instance_delete(user_id, challenge_id):
     app.challenges.delete(int(user_id), int(challenge_id))
     return '', 204
+
+
+@app.errorhandler(util.FlagLengthError)
+def err_flag_length(e):
+    return jsonify({'message': str(e)}), 400
 
 @app.errorhandler(challenges.InstanceNotFoundError)
 def err_instance_not_found(e):

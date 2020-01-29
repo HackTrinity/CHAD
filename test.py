@@ -55,6 +55,7 @@ def main():
     c_create_flag.add_argument('-r', '--no-random-flag', action='store_false', dest='flag',
         help='Don\'t request flag')
     c_create_flag.add_argument('-f', '--flag', help='Flag to use')
+    c_create_flag.add_argument('--flag-length', type=int, dest='flag', help='Length of random flag')
     c_create.add_argument('stack', help='Path to stack YAML')
     c_create.add_argument('service', help='Primary challenge service')
 

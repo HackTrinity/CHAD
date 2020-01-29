@@ -168,7 +168,12 @@ class ChallengeManager:
             'name': f'chad_{user_id}'
         })
         if flag:
-            result['flag'] = flag if isinstance(flag, str) else self.flags.next_flag()
+            if isinstance(flag, str):
+                result['flag'] = flag
+            elif isinstance(flag, int):
+                result['flag'] = self.flags.next_flag(flag)
+            else:
+                result['flag'] = self.flags.next_flag()
             secret_tmp = tempfile.NamedTemporaryFile('w', prefix='flag', suffix='.txt', encoding='ascii')
             secret_tmp.write(f'{result["flag"]}\n')
             secret_tmp.flush()
