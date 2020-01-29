@@ -36,8 +36,10 @@ class FlagGenerator:
         with open('CHAD/nouns.txt') as wordlist:
             self.words = [w.strip() for w in wordlist]
 
+    def fixed_flag(self, flag):
+        return f'{self.prefix}{{{flag}}}'
     def next_flag(self):
-        return f'{self.prefix}{{{"_".join(map(lambda _: self.random.choice(self.words), range(self.wcount)))}}}'
+        return self.fixed_flag('_'.join(map(lambda _: self.random.choice(self.words), range(self.wcount))))
 
 def parse_body(schema: Schema):
     def decorator(fn):

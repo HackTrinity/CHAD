@@ -1,6 +1,6 @@
 import ipaddress
 
-from marshmallow import Schema, fields
+from marshmallow import Schema, fields, post_load, ValidationError
 from marshmallow.validate import Range
 from flask import current_app as app, jsonify
 
@@ -20,6 +20,14 @@ class CreateInstanceSchema(Schema):
     stack = fields.Dict(required=True)
     service = fields.Str(required=True)
     needs_flag = fields.Bool(missing=True)
+    flag = fields.Field(required=True)
+
+    @post_load
+    def check_flag(self, data, **_kwargs):
+        if not isinstance(data['flag'], bool) and not isinstance(data['flag'], str):
+            raise ValidationError('"flag" must be a boolean or a string')
+        return data
+
 create_schema = CreateInstanceSchema()
 
 
@@ -51,7 +59,7 @@ def instance_create(b):
         b['challenge_id'],
         b['stack'],
         b['service'],
-        b['needs_flag']
+        b['flag']
     ))
 
 @app.route('/instances/<user_id>/<challenge_id>', methods=['PATCH'])

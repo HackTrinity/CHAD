@@ -145,7 +145,7 @@ class ChallengeManager:
         except docker.errors.NotFound:
             pass
 
-    def create(self, user_id, challenge_id, stack, service, needs_flag=True):
+    def create(self, user_id, challenge_id, stack, service, flag=True):
         result = {'id': self.ids.encode(user_id, challenge_id)}
         name = stack_name(user_id, challenge_id)
         if name in self.stacks.ls():
@@ -167,8 +167,8 @@ class ChallengeManager:
             'external': True,
             'name': f'chad_{user_id}'
         })
-        if needs_flag:
-            result['flag'] = self.flags.next_flag()
+        if flag:
+            result['flag'] = flag if isinstance(flag, str) else self.flags.next_flag()
             secret_tmp = tempfile.NamedTemporaryFile('w', prefix='flag', suffix='.txt', encoding='ascii')
             secret_tmp.write(f'{result["flag"]}\n')
             secret_tmp.flush()
@@ -182,7 +182,7 @@ class ChallengeManager:
 
         self.redis.set(f'{name}_last_ping', int(time.time()))
         self.stacks.deploy(name, stack, registry_auth=True)
-        if needs_flag:
+        if flag:
             secret_tmp.close()
         return result
 

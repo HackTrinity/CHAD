@@ -21,7 +21,7 @@ def create(args):
         'challenge_id': args.challenge_id,
         'stack': stack,
         'service': args.service,
-        'needs_flag': args.needs_flag
+        'flag': args.flag
     }
     res = requests.post(f'{args.host}/instances', json=body)
     pfallback(res)
@@ -51,7 +51,10 @@ def main():
     c_create.set_defaults(fn=create)
     c_create.add_argument('-u', '--user-id', type=int, default=1, help='User ID')
     c_create.add_argument('-c', '--challenge-id', type=int, default=1, help='Challenge ID')
-    c_create.add_argument('-f', '--without-flag', action='store_false', dest='needs_flag', help='Request flag')
+    c_create_flag = c_create.add_mutually_exclusive_group()
+    c_create_flag.add_argument('-r', '--no-random-flag', action='store_false', dest='flag',
+        help='Don\'t request flag')
+    c_create_flag.add_argument('-f', '--flag', help='Flag to use')
     c_create.add_argument('stack', help='Path to stack YAML')
     c_create.add_argument('service', help='Primary challenge service')
 
