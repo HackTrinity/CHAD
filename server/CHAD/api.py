@@ -1,7 +1,6 @@
 import ipaddress
 
 from marshmallow import Schema, fields, post_load, ValidationError
-from marshmallow.validate import Range
 from flask import current_app as app, jsonify
 
 from . import util, challenges
@@ -30,50 +29,50 @@ class CreateInstanceSchema(Schema):
 create_schema = CreateInstanceSchema()
 
 
-@app.route('/gateways/<user_id>', methods=['POST'])
+@app.route('/gateways/<int:user_id>', methods=['POST'])
 def gateway_create(user_id):
     app.challenges.ensure_gateway_up(user_id)
     return '', 204
 
-@app.route('/gateways/<user_id>', methods=['DELETE'])
+@app.route('/gateways/<int:user_id>', methods=['DELETE'])
 def gateway_delete(user_id):
     app.challenges.ensure_gateway_gone(user_id)
     return '', 204
 
-@app.route('/gateways/<user_id>/ovpn/client')
+@app.route('/gateways/<int:user_id>/ovpn/client')
 def ovpn_client_get(user_id):
     return app.pki.generate_client_ovpn(user_id)
 
 if app.debug:
-    @app.route('/gateways/<user_id>/ovpn/server')
+    @app.route('/gateways/<int:user_id>/ovpn/server')
     def ovpn_server_get(user_id):
         return app.pki.generate_server_ovpn(user_id, challenges.POOL_START, challenges.POOL_END, challenges.NETWORK)
 
 
-@app.route('/instances/<user_id>/<challenge_id>', methods=['POST'])
+@app.route('/instances/<int:user_id>/<int:challenge_id>', methods=['POST'])
 @parse_body(create_schema)
 def instance_create(b, user_id, challenge_id):
     return jsonify(app.challenges.create(
-        int(user_id),
-        int(challenge_id),
+        user_id,
+        challenge_id,
         b['stack'],
         b['service'],
         b['flag']
     ))
 
-@app.route('/instances/<user_id>/<challenge_id>', methods=['PATCH'])
+@app.route('/instances/<int:user_id>/<int:challenge_id>', methods=['PATCH'])
 def instance_ping(user_id, challenge_id):
-    app.challenges.ping(int(user_id), int(challenge_id))
+    app.challenges.ping(user_id, challenge_id)
     return '', 204
 
-@app.route('/instances/<user_id>/<challenge_id>', methods=['PUT'])
+@app.route('/instances/<int:user_id>/<int:challenge_id>', methods=['PUT'])
 def instance_reset(user_id, challenge_id):
-    app.challenges.reset(int(user_id), int(challenge_id))
+    app.challenges.reset(user_id, challenge_id)
     return '', 204
 
-@app.route('/instances/<user_id>/<challenge_id>', methods=['DELETE'])
+@app.route('/instances/<int:user_id>/<int:challenge_id>', methods=['DELETE'])
 def instance_delete(user_id, challenge_id):
-    app.challenges.delete(int(user_id), int(challenge_id))
+    app.challenges.delete(user_id, challenge_id)
     return '', 204
 
 
