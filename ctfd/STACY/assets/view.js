@@ -10,7 +10,26 @@ CTFd._internal.challenge.render = function (markdown) {
 }
 
 
-CTFd._internal.challenge.postRender = function () { }
+CTFd._internal.challenge.postRender = function () {
+    CTFd.lib.$('#challenge-launch').click(() => {
+        const challenge_id = parseInt(CTFd.lib.$('#challenge-id').val());
+        CTFd.fetch(`/plugins/stacy/api/instances/${challenge_id}`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        });
+    });
+    CTFd.lib.$('#challenge-delete').click(() => {
+        const challenge_id = parseInt(CTFd.lib.$('#challenge-id').val());
+        CTFd.fetch(`/plugins/stacy/api/instances/${challenge_id}`, {
+            method: 'DELETE',
+            credentials: 'same-origin'
+        });
+    });
+}
 
 
 CTFd._internal.challenge.submit = function (preview) {

@@ -13,21 +13,93 @@ from CTFd.models import (
     Tags,
     Hints,
 )
-from CTFd.utils.user import get_ip
+from CTFd.utils.config import is_teams_mode
+from CTFd.utils.user import get_ip, is_admin
 from CTFd.utils.uploads import delete_file
 from CTFd.utils.modes import get_model
 
 from CTFd.plugins.challenges import BaseChallenge
 from CTFd.plugins.flags import get_flag_class
 
+class GeneratedFlags(db.Model):
+    __tablename__ = "generated_flags"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"))
+    team_id = db.Column(db.Integer, db.ForeignKey("teams.id", ondelete="CASCADE"))
+    challenge_id = db.Column(db.Integer, db.ForeignKey("challenges.id", ondelete="CASCADE"))
+    value = db.Column(db.Text)
+
+    @staticmethod
+    def is_generated(challenge):
+        if challenge.flag_mode > 0 or challenge.flag_mode == -2:
+            return True
+        if challenge.flag_mode < -2:
+            raise ValueError(f"Invalid flag mode {challenge.flag_mode}")
+        return False
+
+    @classmethod
+    def get_instance_arg(cls, user, challenge):
+        if challenge.flag_mode == 0:
+            # not mounted or generated
+            return False, False
+        if challenge.flag_mode == -1:
+            # mount static
+            flag = Flags.query.filter_by(challenge_id=challenge.id, type="static").first()
+            if not flag:
+                raise KeyError("no static flags available")
+            return flag.content, False
+
+        existing = cls.get(user, challenge)
+        if existing:
+            # mount existing generated
+            return existing.value, False
+        if challenge.flag_mode > 0:
+            # fixed length generated
+            return challenge.flag_mode, True
+        if challenge.flag_mode == -2:
+            # random length generated
+            return True, True
+
+        raise ValueError(f"Invalid flag mode {challenge.flag_mode}")
+
+    @classmethod
+    def create(cls, user, challenge, value):
+        args = dict(challenge_id=challenge.id, value=value)
+        if is_teams_mode() and not is_admin():
+            args["team_id"] = user.team_id
+        else:
+            args["user_id"] = user.id
+
+        flag = cls(**args)
+        db.session.add(flag)
+        db.session.commit()
+        db.session.close()
+        return flag
+
+    @classmethod
+    def get(cls, user, challenge):
+        if is_teams_mode() and not is_admin():
+            return cls.query.filter_by(team_id=user.team_id, challenge_id=challenge.id).first()
+        else:
+            return cls.query.filter_by(user_id=user.id, challenge_id=challenge.id).first()
+
 class CHADChallengeModel(Challenges):
+    __tablename__ = "chad_challenges"
     __mapper_args__ = {"polymorphic_identity": "chad"}
     id = db.Column(None, db.ForeignKey("challenges.id"), primary_key=True)
     initial = db.Column(db.Integer, default=0)
     minimum = db.Column(db.Integer, default=0)
     decay = db.Column(db.Integer, default=0)
+    stack = db.Column(db.Text)
+    service = db.Column(db.String(80))
+    flag_mode = db.Column(db.Integer, default=0)
 
     def __init__(self, *args, **kwargs):
+        random_length = int(kwargs.pop('random_flag_length'))
+        flag_mode = int(kwargs['flag_mode'])
+        if flag_mode > 0:
+            kwargs['flag_mode'] = random_length
+
         super(CHADChallengeModel, self).__init__(**kwargs)
         self.initial = kwargs["value"]
 

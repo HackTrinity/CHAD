@@ -12,7 +12,7 @@
 				{% else %}
 					<li class="nav-item">
 						<a class="nav-link challenge-solves" href="#solves">
-							{{ solves }} {% if solves > 1 %}Solves{% else %}Solves{% endif %}
+							{{ solves }} {% if solves > 1 %}Solves{% else %}Solve{% endif %}
 						</a>
 					</li>
 				{% endif %}
@@ -28,6 +28,16 @@
 							{% endfor %}
 						</div>
 						<span class="challenge-desc">{{ description | safe }}</span>
+
+						<div class="row">
+							<div class="col-md-12 text-center mb-3">
+								<button id="challenge-launch" class="btn btn-primary">Launch instance</button>
+							</div>
+							<div class="col-md-12 text-center mb-3">
+								<button id="challenge-delete" class="btn btn-danger">Delete instance</button>
+							</div>
+						</div>
+
 						<div class="challenge-hints hint-row row">
 							{% for hint in hints %}
 								<div class='col-md-12 hint-button-wrapper text-center mb-3'>
