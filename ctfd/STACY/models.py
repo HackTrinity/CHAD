@@ -14,7 +14,7 @@ from CTFd.models import (
     Hints,
 )
 from CTFd.utils.config import is_teams_mode
-from CTFd.utils.user import get_ip, is_admin
+from CTFd.utils.user import get_ip, get_current_user, is_admin
 from CTFd.utils.uploads import delete_file
 from CTFd.utils.modes import get_model
 
@@ -82,6 +82,15 @@ class GeneratedFlags(db.Model):
             return cls.query.filter_by(team_id=user.team_id, challenge_id=challenge.id).first()
         else:
             return cls.query.filter_by(user_id=user.id, challenge_id=challenge.id).first()
+
+    @classmethod
+    def clear(cls, challenge):
+        cls.query.filter_by(challenge_id=challenge.id).delete()
+        db.session.commit()
+        db.session.close()
+
+    def as_static(self):
+        return Flags(content=self.value)
 
 class CHADChallengeModel(Challenges):
     __tablename__ = "chad_challenges"
@@ -263,12 +272,19 @@ class CHADChallenge(BaseChallenge):
         :param request: The request the user submitted
         :return: (boolean, string)
         """
+        user = get_current_user()
+
         data = request.form or request.get_json()
         submission = data["submission"].strip()
         flags = Flags.query.filter_by(challenge_id=challenge.id).all()
         for flag in flags:
             if get_flag_class(flag.type).compare(flag, submission):
                 return True, "Correct"
+
+        generated_flag = GeneratedFlags.get(user, challenge)
+        if generated_flag and get_flag_class('static').compare(generated_flag.as_static(), submission):
+            return True, "Correct"
+
         return False, "Incorrect"
 
     @staticmethod
