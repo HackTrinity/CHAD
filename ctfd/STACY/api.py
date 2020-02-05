@@ -38,7 +38,7 @@ class InstanceManagement(Resource):
         try:
             flag, should_store = GeneratedFlags.get_instance_arg(user, challenge)
         except KeyError:
-            return {"success": False, "errors": ["No static flags have been configured"]}, 500
+            return {"success": False, "message": "No static flags have been configured"}, 500
 
         stack = yaml.safe_load(challenge.stack)
         info = chad.create_instance(user.id, challenge.id, stack, challenge.service, flag)
@@ -53,3 +53,12 @@ class InstanceManagement(Resource):
 
         chad.delete_instance(user.id, challenge.id)
         return {"success": True}
+
+
+@api.errorhandler(backend.InstanceNotFoundError)
+def err_instance_not_found(e):
+    return {"success": False, "message": str(e)}, 404
+
+@api.errorhandler(backend.InstanceExistsError)
+def err_instance_exists(e):
+    return {"success": False, "message": str(e)}, 409

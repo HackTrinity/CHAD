@@ -94,12 +94,15 @@ class CHADChallengeModel(Challenges):
     service = db.Column(db.String(80))
     flag_mode = db.Column(db.Integer, default=0)
 
-    def __init__(self, *args, **kwargs):
-        random_length = int(kwargs.pop('random_flag_length'))
-        flag_mode = int(kwargs['flag_mode'])
+    @staticmethod
+    def parse_flag_mode(data):
+        random_length = int(data.pop('random_flag_length', 40))
+        flag_mode = int(data['flag_mode'])
         if flag_mode > 0:
-            kwargs['flag_mode'] = random_length
+            data['flag_mode'] = random_length
 
+    def __init__(self, *args, **kwargs):
+        CHADChallengeModel.parse_flag_mode(kwargs)
         super(CHADChallengeModel, self).__init__(**kwargs)
         self.initial = kwargs["value"]
 
@@ -219,7 +222,7 @@ class CHADChallenge(BaseChallenge):
         :return:
         """
         data = request.form or request.get_json()
-
+        CHADChallengeModel.parse_flag_mode(data)
         for attr, value in data.items():
             # We need to set these to floats so that the next operations don't operate on strings
             if attr in ("initial", "minimum", "decay"):

@@ -17,7 +17,55 @@
 	</div>
 
 	<div class="form-group">
-		<label for="message-text" class="control-label">Message<br>
+		<label for="stack" class="control-label">Stack
+			<small class="form-text text-muted">
+				Enter the YAML for a Docker Swarm stack. This will be used to create each instance of the challenge.
+			</small>
+		</label>
+		<textarea id="new-stack-editor" class="form-control" name="stack" rows="15" required>{{ challenge.stack }}</textarea>
+	</div>
+
+	<div class="form-group">
+		<label for="service">Primary Service<br>
+			<small class="form-text text-muted">
+				The name of the main service in the stack. This is the service where the flag can be (optionally)
+				mounted as a secret.
+			</small>
+		</label>
+		<input type="text" class="form-control" name="service" placeholder="Enter primary service" value="{{ challenge.service }}" required>
+	</div>
+
+	<div class="form-group">
+		<label>Flag Configuration<br>
+			<small class="form-text text-muted">
+				How the flag for this challenge should be configured
+			</small>
+		</label>
+
+		<div class="form-check">
+			<input class="form-check-input" type="radio" name="flag_mode" id="flag-random" value="-2" {% if challenge.flag_mode == -2 %}checked{% endif %}>
+			<label class="form-check-label" for="flag-random">Mount per-user random flag</label>
+		</div>
+
+		<div class="form-check">
+			<input class="form-check-input" type="radio" name="flag_mode" id="flag-random-length" value="1" {% if challenge.flag_mode > 0 %}checked{% endif %}>
+			<label class="form-check-label" for="flag-random-length">Mount per-user random flag of fixed length</label>
+		</div>
+		<input type="number" class="form-control" name="random_flag_length" id="flag-random-length-value" placeholder="Flag length" min="8" max="64" value="{% if challenge.flag_mode > 0 %}{{ challenge.flag_mode }}{% else %}40{% endif %}">
+
+		<div class="form-check">
+			<input class="form-check-input" type="radio" name="flag_mode" id="flag-static" value="-1"{% if challenge.flag_mode == -1 %}checked{% endif %}>
+			<label class="form-check-label" for="flag-static">Mount first configured static flag</label>
+		</div>
+
+		<div class="form-check">
+			<input class="form-check-input" type="radio" name="flag_mode" id="flag-none" value="0"{% if challenge.flag_mode == 0 %}checked{% endif %}>
+			<label class="form-check-label" for="flag-none">Don't mount anything</label>
+		</div>
+	</div>
+
+	<div class="form-group">
+		<label for="desc-editor" class="control-label">Message<br>
 			<small class="form-text text-muted">
 				Use this to give a brief introduction to your challenge.
 			</small>
