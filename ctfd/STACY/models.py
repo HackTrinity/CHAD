@@ -106,9 +106,10 @@ class CHADChallengeModel(Challenges):
     @staticmethod
     def parse_flag_mode(data):
         random_length = int(data.pop('random_flag_length', 40))
-        flag_mode = int(data['flag_mode'])
-        if flag_mode > 0:
-            data['flag_mode'] = random_length
+        if 'flag_mode' in data:
+            flag_mode = int(data['flag_mode'])
+            if flag_mode > 0:
+                data['flag_mode'] = random_length
 
     def __init__(self, *args, **kwargs):
         CHADChallengeModel.parse_flag_mode(kwargs)
