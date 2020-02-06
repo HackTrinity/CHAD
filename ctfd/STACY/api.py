@@ -47,11 +47,31 @@ class InstanceManagement(Resource):
 
         return {"success": True}
 
+    @authed_only
     def delete(self, chall_id):
         user = get_current_user()
         challenge = CHADChallengeModel.query.filter_by(id=chall_id).first_or_404()
 
         chad.delete_instance(user.id, challenge.id)
+        return {"success": True}
+
+    @authed_only
+    def put(self, chall_id):
+        user = get_current_user()
+        challenge = CHADChallengeModel.query.filter_by(id=chall_id).first_or_404()
+
+        chad.reset_instance(user.id, challenge.id)
+        return {"success": True}
+
+    @authed_only
+    def patch(self, chall_id):
+        user = get_current_user()
+        challenge = CHADChallengeModel.query.filter_by(id=chall_id).first_or_404()
+
+        if challenge.state == "hidden" and not is_admin():
+            abort(403)
+
+        chad.ping_instance(user.id, challenge.id)
         return {"success": True}
 
 

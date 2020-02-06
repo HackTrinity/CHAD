@@ -31,10 +31,25 @@
 
 						<div class="row">
 							<div class="col-md-12 text-center mb-3">
-								<button id="challenge-launch" class="btn btn-primary">Launch instance</button>
-							</div>
-							<div class="col-md-12 text-center mb-3">
-								<button id="challenge-delete" class="btn btn-danger">Delete instance</button>
+								<div id="instance-status-loading" class="spinner-border spinner-border-sm" role="status">
+									<span class="sr-only">Loading...</span>
+								</div>
+
+								<button id="challenge-launch" type="button" class="btn btn-success" style="display: none;">
+									<span class="spinner-border spinner-border-sm" role="status" style="display: none;"></span>
+									Launch instance
+								</button>
+
+								<div id="instance-controls" class="btn-group" role="group" style="display: none;">
+									<button id="challenge-reset" type="button" class="btn btn-primary">
+										<span class="spinner-border spinner-border-sm" role="status" style="display: none;"></span>
+										Reset instance
+									</button>
+									<button id="challenge-delete" type="button" class="btn btn-danger">
+										<span class="spinner-border spinner-border-sm" role="status" style="display: none;"></span>
+										Delete instance
+									</button>
+								</div>
 							</div>
 						</div>
 

@@ -42,3 +42,13 @@ class CHADClient:
         res = requests.delete(f'{self.endpoint}/instances/{user_id}/{chall_id}')
         self.__raise_status(res)
         res.raise_for_status()
+
+    def reset_instance(self, user_id, chall_id):
+        res = requests.put(f'{self.endpoint}/instances/{user_id}/{chall_id}')
+        self.__raise_status(res)
+        res.raise_for_status()
+
+    def ping_instance(self, user_id, chall_id):
+        res = requests.patch(f'{self.endpoint}/instances/{user_id}/{chall_id}')
+        self.__raise_status(res)
+        res.raise_for_status()

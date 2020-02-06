@@ -1,53 +1,122 @@
 CTFd._internal.challenge.data = undefined;
-
 CTFd._internal.challenge.renderer = CTFd.lib.markdown();
 
 
 CTFd._internal.challenge.preRender = function () {};
-
 CTFd._internal.challenge.render = function (markdown) {
-    return CTFd._internal.challenge.renderer.render(markdown)
+    return CTFd._internal.challenge.renderer.render(markdown);
 };
 
-function stacyFetch(path, args) {
-    return CTFd.fetch(path, args)
+function stacyResCheck(res) {
+    if (!res.ok) {
+        return res.json()
+            .then(r => {
+                if (r.message) {
+                    throw r.message;
+                }
+                throw JSON.stringify(r);
+            })
+    }
+    return res.json();
+}
+function stacyActionButton(selector, action) {
+    const el = CTFd.lib.$(selector);
+    const spinner = el.find('.spinner-border');
+    el.click(() => {
+        el.attr('disabled', true);
+        spinner.removeAttr('style');
+
+        const done = () => {
+            spinner.attr('style', 'display: none;');
+            el.removeAttr('disabled');
+        };
+
+        action()
+            .then(done, done);
+    })
+}
+function stacyPing(challengeId) {
+    CTFd.fetch(`/plugins/stacy/api/instances/${challengeId}`, {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: {
+            'Accept': 'application/json'
+        }
+    })
         .then(res => {
+            CTFd.lib.$('#instance-status-loading').attr('style', 'display: none;');
             if (!res.ok) {
-                return res.json()
-                    .then(r => {
-                        if (r.message) {
-                            throw r.message;
-                        }
-                        throw JSON.stringify(r);
-                    })
+                if (res.status == 404) {
+                    CTFd.lib.$('#instance-controls').attr('style', 'display: none;');
+                    CTFd.lib.$('#challenge-launch').removeAttr('style');
+                    return;
+                }
+
+                return stacyResCheck(res);
             }
-            return res.json();
+
+            CTFd.lib.$('#instance-controls').removeAttr('style');
+            CTFd.lib.$('#challenge-launch').attr('style', 'display: none;');
         })
         .catch(e => {
-            console.error(e);
+            console.log(e);
             alert(e);
-        });
+        })
 }
 
 CTFd._internal.challenge.postRender = function () {
-    CTFd.lib.$('#challenge-launch').click(() => {
-        const challenge_id = parseInt(CTFd.lib.$('#challenge-id').val());
-        stacyFetch(`/plugins/stacy/api/instances/${challenge_id}`, {
+    const challengeId = parseInt(CTFd.lib.$('#challenge-id').val());
+
+    stacyPing(challengeId);
+    CTFd._internal.challenge.ping = setInterval(stacyPing.bind(null, challengeId), 10000);
+    CTFd.lib.$('#challenge-window').on('hidden.bs.modal', () => clearInterval(CTFd._internal.challenge.ping));
+
+    stacyActionButton('#challenge-launch', () =>
+        CTFd.fetch(`/plugins/stacy/api/instances/${challengeId}`, {
             method: 'POST',
             credentials: 'same-origin',
             headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
+                'Accept': 'application/json'
             }
-        });
-    });
-    CTFd.lib.$('#challenge-delete').click(() => {
-        const challenge_id = parseInt(CTFd.lib.$('#challenge-id').val());
-        stacyFetch(`/plugins/stacy/api/instances/${challenge_id}`, {
+        })
+            .then(stacyResCheck)
+            .then(() => stacyPing(challengeId))
+            .catch(e => {
+                console.log(e);
+                alert(e);
+            })
+    );
+
+    stacyActionButton('#challenge-reset', () =>
+        CTFd.fetch(`/plugins/stacy/api/instances/${challengeId}`, {
+            method: 'PUT',
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
+            .then(stacyResCheck)
+            .then(() => stacyPing(challengeId))
+            .catch(e => {
+                console.log(e);
+                alert(e);
+            })
+    );
+    stacyActionButton('#challenge-delete', () =>
+        CTFd.fetch(`/plugins/stacy/api/instances/${challengeId}`, {
             method: 'DELETE',
-            credentials: 'same-origin'
-        });
-    });
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
+            .then(stacyResCheck)
+            .then(() => stacyPing(challengeId))
+            .catch(e => {
+                console.log(e);
+                alert(e);
+            })
+    );
 };
 
 
