@@ -10,6 +10,7 @@ from CTFd.utils.decorators import (
     during_ctf_time_only,
     require_verified_emails,
     authed_only,
+    require_team,
 )
 from CTFd.utils.decorators.visibility import check_challenge_visibility
 
@@ -24,13 +25,19 @@ api = Api(blueprint, prefix="/api", doc=app.config.get("SWAGGER_UI"))
 
 @blueprint.route("/ovpn")
 @authed_only
+@require_team
 @require_verified_emails
 def get_ovpn():
     user = get_current_user()
-    uid = user.team_id if is_teams_mode() else user.id
+    if is_teams_mode():
+        uid = user.team_id
+        name = user.team.name
+    else:
+        uid = user.id
+        name = user.name
 
     res = Response(chad.get_ovpn(uid), mimetype="application/x-openvpn-profile")
-    res.headers["Content-Disposition"] = f"attachment; filename={ctf_name()}_{user.name}.ovpn"
+    res.headers["Content-Disposition"] = f"attachment; filename={ctf_name()}_{name}.ovpn"
     return res
 
 @api.route('/instances/<int:chall_id>')
@@ -38,6 +45,7 @@ class InstanceManagement(Resource):
     @during_ctf_time_only
     @check_challenge_visibility
     @authed_only
+    @require_team
     @require_verified_emails
     def post(self, chall_id):
         user = get_current_user()
@@ -62,6 +70,7 @@ class InstanceManagement(Resource):
     @during_ctf_time_only
     @check_challenge_visibility
     @authed_only
+    @require_team
     @require_verified_emails
     def delete(self, chall_id):
         user = get_current_user()
@@ -74,6 +83,7 @@ class InstanceManagement(Resource):
     @during_ctf_time_only
     @check_challenge_visibility
     @authed_only
+    @require_team
     @require_verified_emails
     def put(self, chall_id):
         user = get_current_user()
@@ -86,6 +96,7 @@ class InstanceManagement(Resource):
     @during_ctf_time_only
     @check_challenge_visibility
     @authed_only
+    @require_team
     @require_verified_emails
     def patch(self, chall_id):
         user = get_current_user()
