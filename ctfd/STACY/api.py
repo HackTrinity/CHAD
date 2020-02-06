@@ -27,7 +27,9 @@ api = Api(blueprint, prefix="/api", doc=app.config.get("SWAGGER_UI"))
 @require_verified_emails
 def get_ovpn():
     user = get_current_user()
-    res = Response(chad.get_ovpn(user.id), mimetype="application/x-openvpn-profile")
+    uid = user.team_id if is_teams_mode() else user.id
+
+    res = Response(chad.get_ovpn(uid), mimetype="application/x-openvpn-profile")
     res.headers["Content-Disposition"] = f"attachment; filename={ctf_name()}_{user.name}.ovpn"
     return res
 
