@@ -4,9 +4,14 @@ import yaml
 from flask import Blueprint, Response, current_app as app, abort
 from flask_restplus import Api, Resource
 
-from CTFd.utils.config import ctf_name
+from CTFd.utils.config import ctf_name, is_teams_mode
 from CTFd.utils.user import get_current_user, is_admin
-from CTFd.utils.decorators import authed_only
+from CTFd.utils.decorators import (
+    during_ctf_time_only,
+    require_verified_emails,
+    authed_only,
+)
+from CTFd.utils.decorators.visibility import check_challenge_visibility
 
 from . import backend
 from .models import GeneratedFlags, CHADChallengeModel
@@ -19,6 +24,7 @@ api = Api(blueprint, prefix="/api", doc=app.config.get("SWAGGER_UI"))
 
 @blueprint.route("/ovpn")
 @authed_only
+@require_verified_emails
 def get_ovpn():
     user = get_current_user()
     res = Response(chad.get_ovpn(user.id), mimetype="application/x-openvpn-profile")
@@ -27,9 +33,13 @@ def get_ovpn():
 
 @api.route('/instances/<int:chall_id>')
 class InstanceManagement(Resource):
+    @during_ctf_time_only
+    @check_challenge_visibility
     @authed_only
+    @require_verified_emails
     def post(self, chall_id):
         user = get_current_user()
+        uid = user.team_id if is_teams_mode() else user.id
         challenge = CHADChallengeModel.query.filter_by(id=chall_id).first_or_404()
 
         if challenge.state == "hidden" and not is_admin():
@@ -41,37 +51,46 @@ class InstanceManagement(Resource):
             return {"success": False, "message": "No static flags have been configured"}, 500
 
         stack = yaml.safe_load(challenge.stack)
-        info = chad.create_instance(user.id, challenge.id, stack, challenge.service, flag)
+        info = chad.create_instance(uid, challenge.id, stack, challenge.service, flag)
         if should_store:
             GeneratedFlags.create(user, challenge, info['flag'])
 
         return {"success": True}
 
+    @during_ctf_time_only
+    @check_challenge_visibility
     @authed_only
+    @require_verified_emails
     def delete(self, chall_id):
         user = get_current_user()
+        uid = user.team_id if is_teams_mode() else user.id
         challenge = CHADChallengeModel.query.filter_by(id=chall_id).first_or_404()
 
-        chad.delete_instance(user.id, challenge.id)
+        chad.delete_instance(uid, challenge.id)
         return {"success": True}
 
+    @during_ctf_time_only
+    @check_challenge_visibility
     @authed_only
+    @require_verified_emails
     def put(self, chall_id):
         user = get_current_user()
+        uid = user.team_id if is_teams_mode() else user.id
         challenge = CHADChallengeModel.query.filter_by(id=chall_id).first_or_404()
 
-        chad.reset_instance(user.id, challenge.id)
+        chad.reset_instance(uid, challenge.id)
         return {"success": True}
 
+    @during_ctf_time_only
+    @check_challenge_visibility
     @authed_only
+    @require_verified_emails
     def patch(self, chall_id):
         user = get_current_user()
+        uid = user.team_id if is_teams_mode() else user.id
         challenge = CHADChallengeModel.query.filter_by(id=chall_id).first_or_404()
 
-        if challenge.state == "hidden" and not is_admin():
-            abort(403)
-
-        chad.ping_instance(user.id, challenge.id)
+        chad.ping_instance(uid, challenge.id)
         return {"success": True}
 
 
