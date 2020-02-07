@@ -1,20 +1,13 @@
-// Markdown Preview
-$('#desc-edit').on('shown.bs.tab', function (event) {
-    if (event.target.hash == '#desc-preview'){
-        var editor_value = $('#desc-editor').val();
-        $(event.target.hash).html(
-            window.challenge.render(editor_value)
+const md = CTFd.lib.markdown();
+CTFd.lib.$('a[href="#new-desc-preview"]').on('shown.bs.tab', function (event) {
+    if (event.target.hash == '#new-desc-preview') {
+        const editor_value = CTFd.lib.$('#new-desc-editor').val();
+        CTFd.lib.$(event.target.hash).html(
+            md.render(editor_value)
         );
     }
 });
-$('#new-desc-edit').on('shown.bs.tab', function (event) {
-    if (event.target.hash == '#new-desc-preview'){
-        var editor_value = $('#new-desc-editor').val();
-        $(event.target.hash).html(
-            window.challenge.render(editor_value)
-        );
-    }
-});
+
 $("#solve-attempts-checkbox").change(function() {
     if(this.checked) {
         $('#solve-attempts-input').show();
