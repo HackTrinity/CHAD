@@ -22,6 +22,7 @@ setup_vxlan() {
     info "Configuring iptables to isolate challenge network"
     net="$(ip route | grep "${VXLAN_IFACE}.*scope link" | awk '{ print $1 }')"
     iptables -A FORWARD -i "$VXLAN_IFACE" -j DROP
+    iptables -A OUTPUT -o lo -j ACCEPT
     iptables -A OUTPUT -d "$net" -j ACCEPT
     iptables -A OUTPUT -o "$VXLAN_OUT" -p udp --dport 4789 -j ACCEPT
     iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED -j ACCEPT
