@@ -37,9 +37,12 @@ setup_vxlan() {
 
 [ ! -z "$CHALLENGE_IP" ] && setup_vxlan "$CHALLENGE_IP"
 
-if [ ! -z "$KEEP_ROOT" ]; then
-    info "Staying as root while executing '$@'"
+if [ ! -z "$KEEP_NET_ADMIN" ]; then
+    info "Staying as root and keeping CAP_NET_ADMIN while executing '$@'"
     exec "$@"
+elif [ ! -z "$KEEP_ROOT" ]; then
+    info "Staying as root while executing '$@'"
+    exec drop_net_admin "$@"
 else
     info "Dropping to nobody:nogroup to execute '$@'"
     exec su-exec nobody:nogroup "$@"
