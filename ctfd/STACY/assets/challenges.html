@@ -8,12 +8,13 @@
 
 <div class="jumbotron">
 	<div class="container">
-        <h1>Challenges</h1>
-
-        <a class="btn btn-success btn-lg" href="/plugins/stacy/ovpn" role="button">
-            <i class="fas fa-download"></i>
-            .ovpn
-        </a>
+		<h1>Challenges</h1>
+{% if name is defined %}
+		<a class="btn btn-success btn-lg" href="/plugins/stacy/ovpn" role="button">
+			<i class="fas fa-download"></i>
+			.ovpn
+		</a>
+{% endif %}
 	</div>
 </div>
 

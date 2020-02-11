@@ -46,6 +46,10 @@ function stacyPing(challengeId) {
         .then(res => {
             CTFd.lib.$('#instance-status-loading').attr('style', 'display: none;');
             if (!res.ok) {
+                if (res.status == 403) {
+                    CTFd.lib.$('#challenge-launch-login').removeAttr('style');
+                    return;
+                }
                 if (res.status == 404) {
                     CTFd.lib.$('#instance-controls').attr('style', 'display: none;');
                     CTFd.lib.$('#challenge-launch').removeAttr('style');
