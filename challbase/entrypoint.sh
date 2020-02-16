@@ -8,6 +8,8 @@ info() {
     echo -e ":: ${BLUE}${@}${NC}"
 }
 
+HOOK_DIR="/etc/challbase"
+
 VXLAN_OUT="ethwe0"
 VXLAN_IFACE="challenge"
 VXLAN_ID=1337
@@ -35,8 +37,10 @@ setup_vxlan() {
     fi
 }
 
+[ -f "$HOOK_DIR/pre-net.sh" ] && "$HOOK_DIR/pre-net.sh"
 [ ! -z "$CHALLENGE_IP" ] && setup_vxlan "$CHALLENGE_IP"
 
+[ -f "$HOOK_DIR/pre-drop.sh" ] && "$HOOK_DIR/pre-drop.sh"
 if [ ! -z "$KEEP_NET_ADMIN" ]; then
     info "Staying as root and keeping CAP_NET_ADMIN while executing '$@'"
     exec "$@"

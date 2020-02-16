@@ -12,6 +12,7 @@ RUN apk --no-cache add libcap su-exec iproute2 iptables
 COPY --from=builder /usr/local/bin/drop_net_admin /usr/local/bin/drop_net_admin
 
 ENV __CAP_ADD=NET_ADMIN
+RUN mkdir /etc/challbase
 COPY entrypoint.sh /
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["/bin/sh"]
