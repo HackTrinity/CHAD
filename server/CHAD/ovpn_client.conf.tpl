@@ -20,4 +20,4 @@ key-direction 1
 remote $server 1194 tcp
 http-proxy $proxy 80
 dev-type tap
-dev hacktrinity
+dev tap
