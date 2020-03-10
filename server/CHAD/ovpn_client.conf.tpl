@@ -21,3 +21,4 @@ remote $server 1194 tcp
 http-proxy $proxy 80
 dev-type tap
 dev tap
+tun-mtu 1300

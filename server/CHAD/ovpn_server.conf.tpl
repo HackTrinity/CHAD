@@ -29,6 +29,7 @@ port 1194
 proto tcp-server
 dev-type tap
 dev gw
+tun-mtu 1300
 
 status /tmp/openvpn-status.log
 user nobody
