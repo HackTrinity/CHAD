@@ -41,6 +41,10 @@ setup_vxlan() {
 [ ! -z "$CHALLENGE_IP" ] && setup_vxlan "$CHALLENGE_IP"
 
 [ -f "$HOOK_DIR/pre-drop.sh" ] && "$HOOK_DIR/pre-drop.sh"
+
+rm -r "$HOOK_DIR/"
+rm -- "$0"
+
 if [ ! -z "$KEEP_NET_ADMIN" ]; then
     info "Staying as root and keeping CAP_NET_ADMIN while executing '$@'"
     exec "$@"
