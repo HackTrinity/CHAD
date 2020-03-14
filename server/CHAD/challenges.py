@@ -32,7 +32,8 @@ class InstanceNotFoundError(ChallengeError):
 class ChallengeManager:
     def __init__(self, docker_, pki_: pki.PKI, stacks, redis, salt, docker_registry='example.com', flag_prefix='CTF',
         instance_timeout=60, gateway_timeout=120, gateway_image='chad-gateway',
-        gateway_domain='chad-gw.sys.hacktrinity.org', traefik_network='traefik'):
+        gateway_domain='chad-gw.sys.hacktrinity.org', traefik_network='traefik',
+        network_plugin='weaveworks/net-plugin:latest_release'):
         self.ids = hashids.Hashids(salt, min_length=10)
         self.flags = util.FlagGenerator(prefix=flag_prefix)
 
@@ -46,6 +47,7 @@ class ChallengeManager:
         self.gateway_image = gateway_image
         self.gateway_domain = gateway_domain
         self.traefik_network = self.docker.networks.get(traefik_network)
+        self.network_plugin = network_plugin
 
     def cleanup(self, logger=None):
         now = int(time.time())
@@ -101,7 +103,7 @@ class ChallengeManager:
             try:
                 net = self.docker.networks.get(net_name)
             except docker.errors.NotFound:
-                self.docker.networks.create(net_name, driver='weaveworks/net-plugin:latest_release')
+                self.docker.networks.create(net_name, driver=self.network_plugin)
                 net = self.docker.networks.get(net_name)
 
             conf_secret_name = f'chad_{user_id}_gwconf'
@@ -163,7 +165,7 @@ class ChallengeManager:
 
         # Docker Swarm overlay networks don't FUCKING SUPPORT MULTICAST
         dpath.new(stack, f'networks/challenge', {
-            'driver': 'weaveworks/net-plugin:latest_release',
+            'driver': self.network_plugin,
             'external': True,
             'name': f'chad_{user_id}'
         })
