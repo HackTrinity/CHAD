@@ -36,6 +36,12 @@ def get_ovpn():
         uid = user.id
         name = user.name
 
+    # HTTP headers need to be ASCII here...
+    try:
+        name.encode('ascii')
+    except UnicodeEncodeError:
+        name = f'u{user.id}'
+
     res = Response(chad.get_ovpn(uid), mimetype="application/x-openvpn-profile")
     res.headers["Content-Disposition"] = f"attachment; filename={ctf_name()}_{name}.ovpn"
     return res
