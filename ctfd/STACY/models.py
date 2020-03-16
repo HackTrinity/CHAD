@@ -1,10 +1,12 @@
 from __future__ import division  # Use floating point for math calculations
 import math
 
-from flask import Blueprint
+from sqlalchemy import or_
+from flask import Blueprint, current_app as app
 
 from CTFd.models import (
     db,
+    Users,
     Solves,
     Fails,
     Flags,
@@ -143,12 +145,14 @@ class CHADChallenge(BaseChallenge):
     def calculate_value(cls, challenge):
         Model = get_model()
 
+        dom_filter = list(map(Users.email.like, map(lambda d: f'%@{d}', app.config['MAIL_LABELS'])))
         solve_count = (
             Solves.query.join(Model, Solves.account_id == Model.id)
             .filter(
                 Solves.challenge_id == challenge.id,
                 Model.hidden == False,
                 Model.banned == False,
+                or_(*dom_filter),
             )
             .count()
         )
